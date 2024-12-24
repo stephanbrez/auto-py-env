@@ -37,15 +37,9 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 # ********** End user settings ********** #
 
-# Check if the script is being executed directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  # Script is being executed directly
-  TARGET_DIRECTORIES=($(pwd))  # Set to current directory
-else
-  # Script is being sourced, set to user defined ENV_DIRECTORIES 
-  if [ -z "$TARGET_DIRECTORIES" ]; then
-    TARGET_DIRECTORIES=$ENV_DIRECTORIES
-  fi
+# Script is being sourced, set to user defined ENV_DIRECTORIES 
+if [ -z "$TARGET_DIRECTORIES" ]; then
+  TARGET_DIRECTORIES=$ENV_DIRECTORIES
 fi
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
@@ -177,20 +171,24 @@ function conda_auto_env() {
   fi
 }
 
-# Checks if the shell is interactive and sets up the environment auto-activation.
-if [[ $- =~ i ]]; then
-  # Function to auto-activate environment when directory changes
-  function auto_env_hook() {
+# Main script logic that combines interactive shell and sourcing check
+# Function to automatically setup environment auto-activation if interactive
+function setup_auto_environment_activation() {
+  if [[ "${BASH_SOURCE[0]}" != "${0}" && $- == *i* ]]; then
+    # Shell is interactive and script is being sourced
+
+    # Ensure conda_auto_env is included in the PROMPT_COMMAND for interactive shells
+    if [[ "$PROMPT_COMMAND" != *conda_auto_env* ]]; then
+      PROMPT_COMMAND="conda_auto_env; $PROMPT_COMMAND"
+    fi
+
+    # Call the function initially to handle the current directory
     conda_auto_env
-  }
-
-  # Ensure auto_env_hook is included in the PROMPT_COMMAND for interactive shells
-  if [[ $PROMPT_COMMAND != *"auto_env_hook"* ]]; then
-    PROMPT_COMMAND="auto_env_hook; $PROMPT_COMMAND"
+  elif [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Script is being executed directly, run single conda setup check
+    TARGET_DIRECTORIES=("$PWD")
+    conda_auto_env
   fi
-
-  # Call the function initially in case the script is sourced while already in a directory
-  auto_env_hook
-else
-  conda_auto_env
-fi
+}
+# Execute setup 
+setup_auto_environment_activation
