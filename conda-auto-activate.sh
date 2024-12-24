@@ -16,13 +16,11 @@
 # TODO: Set the target directory to current directory if running directly
 # List of directories to check for environment.yml and its children
 # Modify this to the directories you want to trigger the environment activation in
-if [ -z "$TARGET_DIRECTORIES" ]; then
-  TARGET_DIRECTORIES=(
+ENV_DIRECTORIES=(
     "/path/to/dir1"
     "/path/to/dir2"
     "/path/to/dir3"
   )
-fi
 
 # Strictness level for validation:
 # 0 = Skip validation
@@ -38,6 +36,17 @@ DANGEROUS_PACKAGES=("curl" "wget" "bash" "sh" "python-pip" "git")
 TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 # ********** End user settings ********** #
+
+# Check if the script is being executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  # Script is being executed directly
+  TARGET_DIRECTORIES=($(pwd))  # Set to current directory
+else
+  # Script is being sourced, set to user defined ENV_DIRECTORIES 
+  if [ -z "$TARGET_DIRECTORIES" ]; then
+    TARGET_DIRECTORIES=$ENV_DIRECTORIES
+  fi
+fi
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
 function is_target_directory() {
