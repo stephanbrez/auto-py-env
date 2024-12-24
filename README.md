@@ -28,7 +28,7 @@ cd /desired/directory
 bash /path/to/conda-auto-activate.sh
 ```
 
-### Configuration
+## Configuration
 
 The script can be customized via two main configuration options:
 
@@ -48,6 +48,7 @@ ENV_DIRECTORIES=(
   "/path/to/dir3"
 )
 ```
+%% TODO: Add an example for how to allow all env directories %%
 
 ### STRICTNESS_LEVEL
 
@@ -87,4 +88,4 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/your-repo/conda-auto-activate/issues) to get involved.
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/stephanbrez/conda-auto-activate/issues) to get involved.
