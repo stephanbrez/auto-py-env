@@ -6,8 +6,6 @@
 # If the environment doesn't exist, conda-auto-activate creates and
 # activates it for you.
 # 
-# Based on https://github.com/chdoig/conda-auto-env
-#
 # To install, add this line to your .bashrc or .bash-profile:
 #
 #       source /path/to/conda-auto-activate.sh
@@ -15,6 +13,7 @@
 
 # ********** User settings ********** #
 
+# TODO: Set the target directory to current directory if running directly
 # List of directories to check for environment.yml and its children
 # Modify this to the directories you want to trigger the environment activation in
 if [ -z "$TARGET_DIRECTORIES" ]; then
@@ -51,6 +50,38 @@ function is_target_directory() {
   return 1  # False, not in any of the target directories or their subdirectories
 }
 
+function check_dangerous_packages() {
+  local line
+  while read -r line; do
+    # Extract the package names if the line starts with a dash (indicating a package entry)
+    if [[ "$line" =~ ^\s*-\s*([a-zA-Z0-9\-]+) ]]; then
+      local pkg="${BASH_REMATCH[1]}"
+      for danger in "${DANGEROUS_PACKAGES[@]}"; do
+        if [[ "$pkg" == "$danger" ]]; then
+          echo "Warning: Dangerous package '$pkg' detected in environment.yml."
+          exit 1
+        fi
+      done
+    fi
+  done < <(grep -E '^\s*- ' environment.yml)
+}
+
+function check_trusted_channels() {
+  local line
+  while read -r line; do
+    for channel in $line; do
+      if [[ "$channel" =~ "channel" ]]; then
+        # Extract the channel name following the colon
+        local channel_name=$(echo "$channel" | sed 's/^[^:]*:\s*//')
+        if [[ ! " ${TRUSTED_CHANNELS[@]} " =~ " ${channel_name} " ]]; then
+          echo "Warning: Untrusted channel '$channel_name' detected in environment.yml."
+          exit 1
+        fi
+      fi
+    done
+  done < <(grep "channel" environment.yml)
+}
+
 # Function to validate the environment.yml file based on the STRICTNESS_LEVEL
 function validate_environment_yml() {
   # If STRICTNESS_LEVEL is 0, skip all validation
@@ -84,24 +115,8 @@ function validate_environment_yml() {
   # LEVEL 2 validation: Additional checks for dangerous packages and untrusted channels
   if [[ $STRICTNESS_LEVEL -ge 2 ]]; then
     # LEVEL 2 already includes LEVEL 1 validation due to structure
-
-    # Check for dangerous packages
-    for pkg in $(grep -E '^\s*- ' environment.yml | cut -d ' ' -f2); do
-      for danger in "${DANGEROUS_PACKAGES[@]}"; do
-        if [[ "$pkg" == "$danger" ]]; then
-          echo "Warning: Dangerous package '$pkg' detected in environment.yml."
-          exit 1
-        fi
-      done
-    done
-
-    # Check if channels are trusted
-    for channel in $(grep "channel" environment.yml); do
-      if [[ ! " ${TRUSTED_CHANNELS[@]} " =~ " ${channel} " ]]; then
-        echo "Warning: Untrusted channel '$channel' detected in environment.yml."
-        exit 1
-      fi
-    done
+    check_dangerous_packages
+    check_trusted_channel
   fi
 
   echo "environment.yml is valid and safe."
