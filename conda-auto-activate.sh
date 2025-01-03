@@ -5,7 +5,7 @@
 #
 # If the environment doesn't exist, conda-auto-activate creates and
 # activates it for you.
-# 
+#
 # To install, add this line to your .bashrc or .bash-profile:
 #
 #       source /path/to/conda-auto-activate.sh
@@ -14,6 +14,9 @@
 # ********** User settings ********** #
 
 # TODO: Set the target directory to current directory if running directly
+# Package manager to use: "conda" or "mamba"
+PACKAGE_MANAGER="mamba"
+
 # List of directories to check for environment.yml and its children
 # Modify this to the directories you want to trigger the environment activation in
 ENV_DIRECTORIES=(
@@ -26,7 +29,7 @@ ENV_DIRECTORIES=(
 # 0 = Skip validation
 # 1 = Run basic validation (yamllint, external commands check)
 # 2 = Run full validation (yamllint, dangerous packages, untrusted channels, external commands)
-STRICTNESS_LEVEL=1  
+STRICTNESS_LEVEL=1
 
 # ********** Full validation settings ********** #
 # Example dangerous packages
@@ -37,7 +40,7 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 # ********** End user settings ********** #
 
-# Script is being sourced, set to user defined ENV_DIRECTORIES 
+# Script is being sourced, set to user defined ENV_DIRECTORIES
 if [ -z "$TARGET_DIRECTORIES" ]; then
   TARGET_DIRECTORIES=$ENV_DIRECTORIES
 fi
@@ -51,6 +54,15 @@ function is_target_directory() {
     fi
   done
   return 1  # False, not in any of the target directories or their subdirectories
+}
+
+# Function to get & set the active package manager
+function get_pkg_manager() {
+    if [[ "$PACKAGE_MANAGER" == "mamba" && -x "$(command -v mamba)" ]]; then
+        echo "mamba"
+    else
+        echo "conda"
+    fi
 }
 
 function check_dangerous_packages() {
@@ -126,15 +138,19 @@ function validate_environment_yml() {
 }
 
 # Function to automatically activate the conda environment or create it if necessary
-function conda_auto_env() {
+
+
+# Function to automatically activate the conda environment or create it if necessary
+function auto_env() {
+  local pkg_mgr=$(get_pkg_manager)
+
   # Only check if we are in a directory that matches one of the target directories
   if ! is_target_directory; then
     return 0  # Not in a target directory, skip further processing
   fi
 
-  # Check if environment.yml exists and run validation only if it does
+  # Check if environment.yml exists and run validation
   if [ -e "environment.yml" ]; then
-    # Run the validation function first
     validate_environment_yml || return 1
 
     # Extract the environment name by finding the first non-comment line with 'name:' and taking the value after it
@@ -143,18 +159,18 @@ function conda_auto_env() {
     # Check if the environment is already active
     if [[ $PATH != *$ENV* ]]; then
       # Check if the environment exists
-      if conda env list | grep -q "$ENV"; then
+      if $pkg_mgr env list | grep -q "$ENV"; then
         # If the environment exists, activate it
-        echo "Activating existing conda environment '$ENV'..."
-        conda activate $ENV
+        echo "Activating existing $pkg_mgr environment '$ENV'..."
+        $pkg_mgr activate $ENV
       else
         # If the environment doesn't exist, create it and activate
-        echo "Conda environment '$ENV' doesn't exist. Creating and activating..."
-        conda env create -f environment.yml -q
+        echo "$pkg_mgr environment '$ENV' doesn't exist. Creating and activating..."
+        $pkg_mgr env create -f environment.yml -q
         if [ $? -eq 0 ]; then
-          conda activate $ENV
+          $pkg_mgr activate $ENV
         else
-          echo "Error: Failed to create conda environment '$ENV'."
+          echo "Error: Failed to create $pkg_mgr environment '$ENV'."
           return 1
         fi
       fi
@@ -163,9 +179,9 @@ function conda_auto_env() {
     # If environment.yml is not present, check for an ./envs directory
     echo "Environment.yml not found, attempting to activate ./envs..."
     # If the ./envs directory exists, activate it
-    conda activate ./envs
+    $pkg_mgr activate ./envs
     if [ $? -ne 0 ]; then
-      echo "Error: Failed to activate ./envs. Ensure it is a valid conda environment."
+      echo "Error: Failed to activate ./envs. Ensure it is a valid $pkg_mgr environment."
       return 1
     fi
   fi
@@ -173,22 +189,23 @@ function conda_auto_env() {
 
 # Main script logic that combines interactive shell and sourcing check
 # Function to automatically setup environment auto-activation if interactive
-function setup_auto_environment_activation() {
+function setup_auto_activation() {
   if [[ "${BASH_SOURCE[0]}" != "${0}" && $- == *i* ]]; then
     # Shell is interactive and script is being sourced
-
-    # Ensure conda_auto_env is included in the PROMPT_COMMAND for interactive shells
-    if [[ "$PROMPT_COMMAND" != *conda_auto_env* ]]; then
-      PROMPT_COMMAND="conda_auto_env; $PROMPT_COMMAND"
+    # Ensure auto_env is included in the PROMPT_COMMAND for interactive shells
+    if [[ -z "$PROMPT_COMMAND" ]]; then
+      PROMPT_COMMAND="auto_env"
+    elif [[ "$PROMPT_COMMAND" != *auto_env* ]]; then
+      PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
     fi
 
     # Call the function initially to handle the current directory
-    conda_auto_env
+    auto_env
   elif [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    # Script is being executed directly, run single conda setup check
+    # Script is being executed directly
     TARGET_DIRECTORIES=("$PWD")
-    conda_auto_env
+    auto_env
   fi
 }
-# Execute setup 
-setup_auto_environment_activation
+# Execute setup
+setup_auto_activation
