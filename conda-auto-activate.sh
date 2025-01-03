@@ -142,46 +142,54 @@ function validate_environment_yml() {
 
 # Function to automatically activate the conda environment or create it if necessary
 function auto_env() {
-  local pkg_mgr=$(get_pkg_manager)
+  local pkg_mgr env_name
+  pkg_mgr=$(get_pkg_manager)
 
-  # Only check if we are in a directory that matches one of the target directories
-  if ! is_target_directory; then
-    return 0  # Not in a target directory, skip further processing
-  fi
+  # Check if we're in a target directory before proceeding
+  is_target_directory || return 0
 
   # Check if environment.yml exists and run validation
-  if [ -e "environment.yml" ]; then
-    validate_environment_yml || return 1
+  if [[ -f "environment.yml" && -r "environment.yml" ]]; then
+    if ! validate_environment_yml; then
+        echo "Error: Environment validation failed" >&2
+        return 1
+    fi
 
     # Extract the environment name by finding the first non-comment line with 'name:' and taking the value after it
-    ENV=$(grep -m 1 '^[^#]*name:' environment.yml | awk '{print $2}')
-
+    env_name=$(grep -m 1 '^[^#]*name:' environment.yml | awk '{print $2}')
+    # Validate environment name
+    if [[ -z "$env_name" ]]; then
+        echo "Error: Could not determine environment name from environment.yml" >&2
+        return 1
+    fi
     # Check if the environment is already active
     if [[ $PATH != *$ENV* ]]; then
       # Check if the environment exists
-      if $pkg_mgr env list | grep -q "$ENV"; then
+      if $pkg_mgr env list | grep -q "^${env_name} "; then
         # If the environment exists, activate it
-        echo "Activating existing $pkg_mgr environment '$ENV'..."
-        $pkg_mgr activate $ENV
+        echo "Activating existing $pkg_mgr environment '$env_name'..."
+        if ! $pkg_mgr activate "$env_name"; then
+          echo "Error: Failed to activate environment '$env_name'" >&2
+          return 1
+        fi
       else
         # If the environment doesn't exist, create it and activate
-        echo "$pkg_mgr environment '$ENV' doesn't exist. Creating and activating..."
-        $pkg_mgr env create -f environment.yml -q
-        if [ $? -eq 0 ]; then
-          $pkg_mgr activate $ENV
-        else
-          echo "Error: Failed to create $pkg_mgr environment '$ENV'."
+        echo "$pkg_mgr environment '$env_name' doesn't exist. Creating and activating..."
+        if ! $pkg_mgr env create -f environment.yml -q; then
+          echo "Error: Failed to create environment '$env_name'" >&2
+          return 1
+        fi
+        if ! $pkg_mgr activate "$env_name"; then
+          echo "Error: Failed to activate newly created environment '$env_name'" >&2
           return 1
         fi
       fi
     fi
-  elif [ -d "./envs" ]; then
+  elif [[ -d "./envs" && -x "./envs" ]]; then
     # If environment.yml is not present, check for an ./envs directory
     echo "Environment.yml not found, attempting to activate ./envs..."
-    # If the ./envs directory exists, activate it
-    $pkg_mgr activate ./envs
-    if [ $? -ne 0 ]; then
-      echo "Error: Failed to activate ./envs. Ensure it is a valid $pkg_mgr environment."
+    if ! $pkg_mgr activate "./envs"; then
+      echo "Error: Failed to activate ./envs directory." >&2
       return 1
     fi
   fi
