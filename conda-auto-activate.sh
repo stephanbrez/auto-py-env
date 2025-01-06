@@ -58,6 +58,11 @@ function is_target_directory() {
 
 # Function to get & set the active package manager
 function get_pkg_manager() {
+    # Mamba check will fail if an environment is not activated
+    if [[ -z "${CONDA_DEFAULT_ENV}" ]]; then
+        conda activate base
+    fi
+
     if [[ "$PACKAGE_MANAGER" == "mamba" && -x "$(command -v mamba)" ]]; then
         echo "mamba"
     else
