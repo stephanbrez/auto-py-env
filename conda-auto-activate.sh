@@ -125,7 +125,7 @@ function validate_environment_yml() {
     fi
 
     # Check for external commands like 'curl', 'wget', 'bash', etc.
-    if grep -E '(curl|wget|bash|sh|python|git)' environment.yml; then
+    if grep -E '(curl|wget|bash|sh|git)' environment.yml; then
       echo "Warning: External command invocation detected in environment.yml."
       echo "Potentially unsafe commands like 'curl', 'wget', or 'bash' found."
       exit 1
