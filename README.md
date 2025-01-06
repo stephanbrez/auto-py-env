@@ -14,6 +14,9 @@ source /path/to/conda-auto-activate.sh
 
 Replace `/path/to/conda-auto-activate.sh` with the actual path to the `conda-auto-activate.sh` script.
 
+If using STRICTNESS_LEVEL 1 and above, you'll need to install yamllint: `sudo
+apt install yamllint` or `sudo pacman install yamllint` or `sudo dnf install yamllint` depending on your distribution.
+
 ## Usage
 
 1. **Automatic Activation**: When configured, the script activates an environment upon entering a monitored directory with an `environment.yml` file or an `/envs` directory.
@@ -48,6 +51,7 @@ ENV_DIRECTORIES=(
   "/path/to/dir3"
 )
 ```
+
 %% TODO: Add an example for how to allow all env directories %%
 
 ### STRICTNESS_LEVEL
@@ -64,7 +68,7 @@ Set the level in `conda-auto-activate.sh`:
 STRICTNESS_LEVEL=1
 ```
 
-#### Validation Checks:
+#### Validation Checks
 
 - **No VALIDATION (Level 0)**: No validation checks are performed.
 - **Basic Validation (Level 1)**: Checks for valid YAML syntax using `yamllint` and warns about potential dangerous command invocations like `curl`, `wget`, etc.
