@@ -7,7 +7,7 @@ Inspired by [conda-auto-env](https://github.com/chdoig/conda-auto-env).
 **Features**:
 
 - Automatic terminal setup.
-- Support for both conda and mamba package managers.
+- Support for both conda and mamba package managers--works if you keep mamba environments separate from conda environments.
 - Runs in specified directories only.
 - Validation of `environment.yml` files to ensure they are safe to use.
 - Direct activation of conda environments from the command line.
