@@ -168,10 +168,17 @@ function auto_env() {
     # Check if the environment is not already active
     if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
       # Check if the environment exists
-      if conda env list | grep -q "^${env_name} "; then
+      if env_path=$(conda env list | awk -v env="$env_name" '$0 ~ env {print $NF; exit}') && [[ -n "$env_path" ]]; then
+
+        # Check if 'mamba' exists in the path to determine package manager
+        if echo "$env_path" | grep -q "mamba"; then
+            original_pkg_mgr="mamba"
+        else
+            original_pkg_mgr="conda"
+        fi
         # If the environment exists, activate it
-        echo "Activating existing $pkg_mgr environment '$env_name'..."
-        if ! $pkg_mgr activate "$env_name"; then
+        echo "Activating existing $original_pkg_mgr environment '$env_name'..."
+        if ! $original_pkg_mgr activate "$env_name"; then
           echo "Error: Failed to activate environment '$env_name'" >&2
           return 1
         fi
