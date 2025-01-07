@@ -171,18 +171,18 @@ function auto_env() {
       if conda env list | grep -q "^${env_name} "; then
         # If the environment exists, activate it
         echo "Activating existing $pkg_mgr environment '$env_name'..."
-        if ! conda activate "$env_name"; then
+        if ! $pkg_mgr activate "$env_name"; then
           echo "Error: Failed to activate environment '$env_name'" >&2
           return 1
         fi
       else
         # If the environment doesn't exist, create it and activate
-        echo "conda environment '$env_name' doesn't exist. Creating and activating..."
+        echo "$pkg_mgr environment '$env_name' doesn't exist. Creating and activating..."
         if ! $pkg_mgr env create -f environment.yml -q; then
           echo "Error: Failed to create environment '$env_name'" >&2
           return 1
         fi
-        if ! conda activate "$env_name"; then
+        if ! $pkg_mgr activate "$env_name"; then
           echo "Error: Failed to activate newly created environment '$env_name'" >&2
           return 1
         fi
@@ -191,7 +191,7 @@ function auto_env() {
   elif [[ -d "./envs" && -x "./envs" ]]; then
     # If environment.yml is not present, check for an ./envs directory
     echo "Environment.yml not found, attempting to activate ./envs..."
-    if ! conda activate "./envs"; then
+    if ! $pkg_mgr activate "./envs"; then
       echo "Error: Failed to activate ./envs directory." >&2
       return 1
     fi
@@ -232,6 +232,7 @@ function setup_auto_activation() {
 
     # Run auto_env if shell is interactive
     if [[ $- == *i* ]]; then
+        TARGET_DIRECTORIES=("$PWD")
         auto_env
     else
         echo "Error: Shell is not interactive"
