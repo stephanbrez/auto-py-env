@@ -4,39 +4,55 @@ conda-auto-activate is a tool that automatically activates conda environments wh
 
 Inspired by [conda-auto-env](https://github.com/chdoig/conda-auto-env).
 
+**Features**:
+
+- Automatic terminal setup.
+- Support for both conda and mamba package managers.
+- Runs in specified directories only.
+- Validation of `environment.yml` files to ensure they are safe to use.
+- Direct activation of conda environments from the command line.
+
 ## Installation
 
 For automatic operation, integrate the script into your shell configuration by adding the following line to your shell's rc file (e.g., `~/.bashrc`):
 
 ```sh
-source /path/to/conda-auto-activate.sh
+source /path/to/conda-auto-activate.sh --init
 ```
 
 Replace `/path/to/conda-auto-activate.sh` with the actual path to the `conda-auto-activate.sh` script.
 
-If using STRICTNESS_LEVEL 1 and above, you'll need to install yamllint: `sudo
+If using STRICTNESS_LEVEL 1 and above, if you want to use the optional linting feature, you'll need to install yamllint: `sudo
 apt install yamllint` or `sudo pacman install yamllint` or `sudo dnf install yamllint` depending on your distribution.
+
+:warning: This script will not work if you don't set the `ENV_DIRECTORIES` variable in the script. See the [Configuration](#configuration) section for more details.
 
 ## Usage
 
-1. **Automatic Activation**: When configured, the script activates an environment upon entering a monitored directory with an `environment.yml` file or an `/envs` directory.
-2. **Environment Creation**: If the specified environment in `environment.yml` does not exist, the script will create it automatically.
+### Automatic Activation
+
+Nothing to do, the script will automatically activate the environment when you enter a monitored directory with an `environment.yml` file or an `/envs` directory..
 
 ### Manual Activation
 
-If you prefer manual operation:
+If you want to override the specified directories or not use automatic activation,  you can manually run the script:
 
 ```sh
 cd /desired/directory
-bash /path/to/conda-auto-activate.sh
+source /path/to/conda-auto-activate.sh
 ```
 
 ## Configuration
 
-The script can be customized via two main configuration options:
+The script has two groups of configuration options:
 
-1. **ENV_DIRECTORIES**: Specifies which directories are monitored for conda activation.
-2. **STRICTNESS_LEVEL**: Controls the validation checks run on `environment.yml`.
+1. **Mandatory**:
+    - `ENV_DIRECTORIES`: Specifies which directories are monitored for conda activation.
+2. **Optional**:
+- `PACKAGE_MANAGER`: Specifies the package manager to use. Can be either `conda` or `mamba`. Defaults to `mamba`.
+    - `STRICTNESS_LEVEL`: Controls the validation checks run on `environment.yml`. Defaults to `1`.
+    - `DANGEROUS_PACKAGES`: List of dangerous packages to check for in `environment.yml`.
+    - `TRUSTED_CHANNELS`: List of trusted channels to check for in `environment.yml`. Defaults to `conda-forge` and `defaults`.
 
 ### ENV_DIRECTORIES
 
@@ -86,6 +102,7 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 ### Troubleshooting
 
+- Conda/Mamba has to have been run before the script is sourced. If you're getting errors, make sure you have run `conda init bash` or `mamba init bash` at least once.
 - Ensure the `yamllint` tool is installed if using validation levels 1 or 2.
 - If an error occurs during activation or creation, check your `environment.yml` for syntax errors or invalid configurations.
 - If the script does not seem to activate environments, verify that your `TARGET_DIRECTORIES` are correctly set and match the directories you are navigating.
