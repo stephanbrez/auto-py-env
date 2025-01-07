@@ -47,14 +47,35 @@ fi
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
 function is_target_directory() {
+  local current_dir
   current_dir=$(pwd)
   for target_dir in "${TARGET_DIRECTORIES[@]}"; do
-    if [[ "$current_dir" == *"$target_dir"* ]]; then
+    if [[ "$current_dir" == *"${target_dir}"* ]]; then
       return 0  # True, the current directory or its parent is one of the target directories
     fi
   done
   echo "Error: Not in any of the target directories or their subdirectories." >&2
   return 1  # False, not in any of the target directories or their subdirectories
+}
+
+# Function to get the primary conda envs directory
+function get_conda_envs_dir() {
+    # Get the first envs directory from conda config
+    local first_envs_dir
+    first_envs_dir=$(conda config --show envs_dirs | grep -m1 -oP '(?<=- ).+')
+    echo "${first_envs_dir}"
+}
+
+# Function to check if current directory is inside conda envs
+function is_conda_envs_dir() {
+    local current_dir conda_envs_dir
+    current_dir=$(pwd)
+    conda_envs_dir=$(get_conda_envs_dir)
+
+    if [[ "$current_dir" == "${conda_envs_dir}"* ]]; then
+        return 0  # True, we are in conda envs directory
+    fi
+    return 1  # False, we are not in conda envs directory
 }
 
 # Function to get & set the active package manager
@@ -133,7 +154,7 @@ function validate_environment_yml() {
   if [[ $STRICTNESS_LEVEL -ge 2 ]]; then
     # LEVEL 2 already includes LEVEL 1 validation due to structure
     check_dangerous_packages
-    check_trusted_channel
+    check_trusted_channels
   fi
 
   echo "environment.yml is valid and safe."
@@ -186,13 +207,24 @@ function auto_env() {
       else
         # If the environment doesn't exist, create it and activate
         echo "$pkg_mgr environment '$env_name' doesn't exist. Creating and activating..."
-        if ! $pkg_mgr env create -f environment.yml -q --prefix="$(pwd)"; then
-          echo "Error: Failed to create environment '$env_name'" >&2
-          return 1
-        fi
-        if ! $pkg_mgr activate "$env_name"; then
-          echo "Error: Failed to activate newly created environment '$env_name'" >&2
-          return 1
+        if is_conda_envs_dir; then
+            if ! $pkg_mgr env create -f environment.yml -q; then
+                echo "Error: Failed to create environment '$env_name'" >&2
+                return 1
+            fi
+            if ! $pkg_mgr activate "$env_name"; then
+                echo "Error: Failed to activate newly created environment '$env_name'" >&2
+                return 1
+            fi
+        else
+            if ! $pkg_mgr env create -f environment.yml -q --prefix "./envs"; then
+                echo "Error: Failed to create environment '$env_name'" >&2
+                return 1
+            fi
+            if ! $pkg_mgr activate "./envs"; then
+                echo "Error: Failed to activate newly created environment '$env_name'" >&2
+                return 1
+            fi
         fi
       fi
     fi
