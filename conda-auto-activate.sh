@@ -53,21 +53,22 @@ function is_target_directory() {
       return 0  # True, the current directory or its parent is one of the target directories
     fi
   done
+  echo "Error: Not in any of the target directories or their subdirectories." >&2
   return 1  # False, not in any of the target directories or their subdirectories
 }
 
 # Function to get & set the active package manager
 function get_pkg_manager() {
-    # Mamba check will fail if an environment is not activated
-    if [[ -z "${CONDA_DEFAULT_ENV}" ]]; then
-        conda activate base
+    # First ensure conda/mamba is initialized
+    if [[ "$PACKAGE_MANAGER" == "mamba" ]]; then
+        # Check if mamba exists in path
+        if command -v mamba >/dev/null 2>&1; then
+            echo "mamba"
+            return
+        fi
     fi
-
-    if [[ "$PACKAGE_MANAGER" == "mamba" && -x "$(command -v mamba)" ]]; then
-        echo "mamba"
-    else
-        echo "conda"
-    fi
+    # Fall back to conda if mamba is not available
+    echo "conda"
 }
 
 function check_dangerous_packages() {
@@ -163,27 +164,27 @@ function auto_env() {
         echo "Error: Could not determine environment name from environment.yml" >&2
         return 1
     else
-      echo "Fount environment name: $env_name"
+      echo "Found environment name: $env_name"
     fi
 
     # Check if the environment is not already active
     if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
       # Check if the environment exists
-      if $pkg_mgr env list | grep -q "^${env_name} "; then
+      if conda env list | grep -q "^${env_name} "; then
         # If the environment exists, activate it
         echo "Activating existing $pkg_mgr environment '$env_name'..."
-        if ! $pkg_mgr activate "$env_name"; then
+        if ! conda activate "$env_name"; then
           echo "Error: Failed to activate environment '$env_name'" >&2
           return 1
         fi
       else
         # If the environment doesn't exist, create it and activate
-        echo "$pkg_mgr environment '$env_name' doesn't exist. Creating and activating..."
+        echo "conda environment '$env_name' doesn't exist. Creating and activating..."
         if ! $pkg_mgr env create -f environment.yml -q; then
           echo "Error: Failed to create environment '$env_name'" >&2
           return 1
         fi
-        if ! $pkg_mgr activate "$env_name"; then
+        if ! conda activate "$env_name"; then
           echo "Error: Failed to activate newly created environment '$env_name'" >&2
           return 1
         fi
@@ -192,7 +193,7 @@ function auto_env() {
   elif [[ -d "./envs" && -x "./envs" ]]; then
     # If environment.yml is not present, check for an ./envs directory
     echo "Environment.yml not found, attempting to activate ./envs..."
-    if ! $pkg_mgr activate "./envs"; then
+    if ! conda activate "./envs"; then
       echo "Error: Failed to activate ./envs directory." >&2
       return 1
     fi
@@ -216,7 +217,7 @@ function setup_auto_activation() {
   elif [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     # Script is being executed directly
     TARGET_DIRECTORIES=("$PWD")
-    eval "$("$pkg_mgr" shell hook --shell bash)" # Fix conda/mamba init
+    eval "$(conda shell.bash hook)" # Fix conda/mamba init
     auto_env
   fi
 }
