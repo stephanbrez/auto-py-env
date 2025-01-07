@@ -163,8 +163,6 @@ function auto_env() {
     if [[ -z "$env_name" ]]; then
         echo "Error: Could not determine environment name from environment.yml" >&2
         return 1
-    else
-      echo "Found environment name: $env_name"
     fi
 
     # Check if the environment is not already active
@@ -203,7 +201,6 @@ function auto_env() {
 # Main script logic that combines interactive shell and sourcing check
 # Function to automatically setup environment auto-activation if interactive
 function setup_auto_activation() {
-
     # Check if being executed directly
     if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
         echo "Script is being executed directly"
@@ -212,9 +209,18 @@ function setup_auto_activation() {
         return 1
     fi
 
-    # Set up auto-activation only during shell initialization
-    if [[ -n "$SHELL_INIT" ]]; then
-        echo "SHELL_INIT is set"
+    # Check if --init argument is provided
+    local init_flag=0
+    for arg in "$@"; do
+        if [[ "$arg" == "--init" ]]; then
+            init_flag=1
+            break
+        fi
+    done
+
+    # Set up auto-activation if --init flag is present
+    if [[ $init_flag -eq 1 ]]; then
+        echo "Initializing auto-activation"
         if [[ -z "$PROMPT_COMMAND" ]]; then
             echo "Setting PROMPT_COMMAND to auto_env"
             PROMPT_COMMAND="auto_env"
@@ -231,5 +237,5 @@ function setup_auto_activation() {
         echo "Error: Shell is not interactive"
     fi
 }
-# Execute setup
-setup_auto_activation
+# Execute setup with all arguments passed to the script
+setup_auto_activation "$@"
