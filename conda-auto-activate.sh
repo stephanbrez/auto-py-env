@@ -203,23 +203,33 @@ function auto_env() {
 # Main script logic that combines interactive shell and sourcing check
 # Function to automatically setup environment auto-activation if interactive
 function setup_auto_activation() {
-  if [[ "${BASH_SOURCE[0]}" != "${0}" && $- == *i* ]]; then
-    # Shell is interactive and script is being sourced
-    # Ensure auto_env is included in the PROMPT_COMMAND for interactive shells
-    if [[ -z "$PROMPT_COMMAND" ]]; then
-      PROMPT_COMMAND="auto_env"
-    elif [[ "$PROMPT_COMMAND" != *auto_env* ]]; then
-      PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
+
+    # Check if being executed directly
+    if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+        echo "Script is being executed directly"
+        echo "This script is meant to be sourced and not executed directly."
+        echo "Run 'source /path/to/conda-auto-activate.sh'."
+        return 1
     fi
 
-    # Call the function initially to handle the current directory
-    auto_env
-  elif [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    # Script is being executed directly
-    TARGET_DIRECTORIES=("$PWD")
-    eval "$(conda shell.bash hook)" # Fix conda/mamba init
-    auto_env
-  fi
+    # Set up auto-activation only during shell initialization
+    if [[ -n "$SHELL_INIT" ]]; then
+        echo "SHELL_INIT is set"
+        if [[ -z "$PROMPT_COMMAND" ]]; then
+            echo "Setting PROMPT_COMMAND to auto_env"
+            PROMPT_COMMAND="auto_env"
+        elif [[ "$PROMPT_COMMAND" != *auto_env* ]]; then
+            echo "Adding auto_env to existing PROMPT_COMMAND"
+            PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
+        fi
+    fi
+
+    # Run auto_env if shell is interactive
+    if [[ $- == *i* ]]; then
+        auto_env
+    else
+        echo "Error: Shell is not interactive"
+    fi
 }
 # Execute setup
 setup_auto_activation
