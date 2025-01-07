@@ -168,7 +168,7 @@ function auto_env() {
     # Check if the environment is not already active
     if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
       # Check if the environment exists
-      if env_path=$(conda env list | awk -v env="$env_name" '$0 ~ env {print $NF; exit}') && [[ -n "$env_path" ]]; then
+      if env_path=$(conda env list | awk -v env="$env_name" '$0 ~ env {print $NF; exit}'); then
 
         # Check if 'mamba' exists in the path to determine package manager
         if echo "$env_path" | grep -q "mamba"; then
