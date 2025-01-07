@@ -42,7 +42,7 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 # Script is being sourced, set to user defined ENV_DIRECTORIES
 if [ -z "$TARGET_DIRECTORIES" ]; then
-  TARGET_DIRECTORIES=$ENV_DIRECTORIES
+  TARGET_DIRECTORIES=("${ENV_DIRECTORIES[@]}")
 fi
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
@@ -87,19 +87,15 @@ function check_dangerous_packages() {
 }
 
 function check_trusted_channels() {
-  local line
-  while read -r line; do
-    for channel in $line; do
-      if [[ "$channel" =~ "channel" ]]; then
-        # Extract the channel name following the colon
-        local channel_name=$(echo "$channel" | sed 's/^[^:]*:\s*//')
-        if [[ ! " ${TRUSTED_CHANNELS[@]} " =~ " ${channel_name} " ]]; then
-          echo "Warning: Untrusted channel '$channel_name' detected in environment.yml."
-          exit 1
+    local channel_name
+    while read -r line; do
+        channel_name="${line##*-}"  # Remove everything up to last dash
+        channel_name="${channel_name## }"  # Remove leading space
+        if [[ ! " ${TRUSTED_CHANNELS[*]} " =~ ${channel_name} ]]; then
+            echo "Warning: Untrusted channel '$channel_name' detected in environment.yml."
+            exit 1
         fi
-      fi
-    done
-  done < <(grep "channel" environment.yml)
+    done < <(sed -n '/^channels:/,/^[^-]/p' environment.yml | grep '^[[:space:]]*-')
 }
 
 # Function to validate the environment.yml file based on the STRICTNESS_LEVEL
@@ -166,9 +162,12 @@ function auto_env() {
     if [[ -z "$env_name" ]]; then
         echo "Error: Could not determine environment name from environment.yml" >&2
         return 1
+    else
+      echo "Fount environment name: $env_name"
     fi
-    # Check if the environment is already active
-    if [[ $PATH != *$ENV* ]]; then
+
+    # Check if the environment is not already active
+    if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
       # Check if the environment exists
       if $pkg_mgr env list | grep -q "^${env_name} "; then
         # If the environment exists, activate it
@@ -217,6 +216,7 @@ function setup_auto_activation() {
   elif [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     # Script is being executed directly
     TARGET_DIRECTORIES=("$PWD")
+    eval "$("$pkg_mgr" shell hook --shell bash)" # Fix conda/mamba init
     auto_env
   fi
 }
