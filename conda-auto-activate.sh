@@ -185,7 +185,7 @@ function auto_env() {
       else
         # If the environment doesn't exist, create it and activate
         echo "$pkg_mgr environment '$env_name' doesn't exist. Creating and activating..."
-        if ! $pkg_mgr env create -f environment.yml -q; then
+        if ! $pkg_mgr env create -f environment.yml -q --prefix="$(pwd)"; then
           echo "Error: Failed to create environment '$env_name'" >&2
           return 1
         fi
