@@ -58,7 +58,7 @@ debug() {
     if [ "${DEBUG:-0}" -eq 1 ] && [ "${DEBUG_ENABLED:-0}" -eq 1 ]; then
         local timestamp=$(date '+%H:%M:%S')
         echo "========================================" >&3
-        echo "[${timestamp}] 🔍 $BATS_TEST_NAME: $*" >&3
+        echo "[${timestamp}] $BATS_TEST_NAME: $*" >&3
         echo "========================================" >&3
     fi
 }
@@ -320,6 +320,88 @@ EOF
     run activate_conda
     debug "activate_conda exit status: $status"
     debug "activate_conda output: $output"
+    [ "$status" -eq 0 ]
+}
+
+# Test get_conda_envs_dirs function
+@test "get_conda_envs_dirs should correctly retrieve and combine directories" {
+    # Set interactive shell
+    set_interactive 1
+
+    # Mock conda info output
+    function conda() {
+        case "$1" in
+            "info")
+                echo "     active environment : None
+                active env location : None
+                        shell level : 0
+                   user config file : /home/user/.condarc
+                 populated config files : /home/user/.condarc
+                       conda version : 4.9.2
+                 conda-build version : not installed
+                      python version : 3.8.5.final.0
+                    virtual packages : __cuda=11.0=0
+                    base environment : /opt/conda  (writable)
+                        channel URLs : https://repo.anaconda.com/pkgs/main/linux-64
+                                     https://repo.anaconda.com/pkgs/main/noarch
+                                     https://repo.anaconda.com/pkgs/r/linux-64
+                                     https://repo.anaconda.com/pkgs/r/noarch
+                       package cache : /opt/conda/pkgs
+                                     /home/user/.conda/pkgs
+                    envs directories : /home/user/conda/envs
+                                     /opt/conda/envs
+                            platform : linux-64
+                          user-agent : conda/4.9.2 requests/2.24.0 CPython/3.8.5 Linux/5.4.0-73-generic ubuntu/20.04.2 glibc/2.31
+                             UID:GID : 1000:1000
+                          netrc file : None
+                        offline mode : False"
+                ;;
+            *)
+                conda.real "$@"
+                ;;
+        esac
+    }
+    export -f conda
+
+    # Initialize arrays
+    declare -g PROJECT_DIRECTORIES="/path/to/project1 /path/to/project2"
+
+    # Call the function to test
+    run get_conda_envs_dirs
+    [ "$status" -eq 0 ]
+
+    # The output should start with "CONDA_ENV_DIRS: " followed by the paths
+    [[ "$output" =~ ^"CONDA_ENV_DIRS: " ]] || false
+
+    # Extract just the paths part (everything after "CONDA_ENV_DIRS: ")
+    local paths="${output#*: }"
+    debug "Extracted paths: \"$paths\""
+
+    # Count number of paths (should be 2)
+    run bash -ic 'echo "$1" | tr " " "\n" | grep -v "^$" | wc -l' _ "$paths"
+    [ "$output" -eq 2 ]
+
+    # Check if both required paths are present
+    run bash -ic 'echo "$1" | grep -q "/home/user/conda/envs"' _ "$paths"
+    [ "$status" -eq 0 ]
+    run bash -ic 'echo "$1" | grep -q "/opt/conda/envs"' _ "$paths"
+    [ "$status" -eq 0 ]
+
+    # Update PROJECT_DIRECTORIES with conda paths
+    PROJECT_DIRECTORIES+=" $paths"
+
+    # Count project directories (should be 4)
+    run bash -ic 'echo "$1" | tr " " "\n" | grep -v "^$" | wc -l' _ "$PROJECT_DIRECTORIES"
+    [ "$output" -eq 4 ]
+
+    # Check if all required paths are present
+    run bash -ic 'echo "$1" | grep -q "/path/to/project1"' _ "$PROJECT_DIRECTORIES"
+    [ "$status" -eq 0 ]
+    run bash -ic 'echo "$1" | grep -q "/path/to/project2"' _ "$PROJECT_DIRECTORIES"
+    [ "$status" -eq 0 ]
+    run bash -ic 'echo "$1" | grep -q "/home/user/conda/envs"' _ "$PROJECT_DIRECTORIES"
+    [ "$status" -eq 0 ]
+    run bash -ic 'echo "$1" | grep -q "/opt/conda/envs"' _ "$PROJECT_DIRECTORIES"
     [ "$status" -eq 0 ]
 }
 
