@@ -48,12 +48,19 @@ function get_conda_envs_dirs() {
         echo "Error: Failed to get conda info" >&2
         return 1
     fi
-    CONDA_ENV_DIRS=$(echo "$conda_info" | grep "envs directories" | awk -F: '{print $2}' | xargs)
-    for ENV_DIR in $CONDA_ENV_DIRS; do
+
+    # Extract both the main line and the continuation line
+    readarray -t CONDA_ENV_DIRS < <(echo "$conda_info" |
+        grep -A1 "envs directories" | # Get the line and one after
+        sed -n 's/.*envs directories : //p; /^[[:space:]]\+/p' | # Extract paths
+        sed 's/^[[:space:]]\+//' | # Remove leading spaces
+        grep -v '^$') # Remove empty lines
+
+    for ENV_DIR in "${CONDA_ENV_DIRS[@]}"; do
         PROJECT_DIRECTORIES+=("$ENV_DIR")
     done
+    echo "CONDA_ENV_DIRS: ${CONDA_ENV_DIRS[@]}"
 }
-
 # Script is being sourced, set to user defined PROJECT_DIRECTORIES
 if [ -z "$TARGET_DIRECTORIES" ]; then
   get_conda_envs_dirs
@@ -64,7 +71,7 @@ fi
 function is_target_directory() {
   local current_dir
   current_dir=$(pwd)
-  
+
   # Check if TARGET_DIRECTORIES is empty
   if [ ${#TARGET_DIRECTORIES[@]} -eq 0 ]; then
     echo "Error: TARGET_DIRECTORIES is empty." >&2
