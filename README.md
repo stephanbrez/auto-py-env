@@ -46,7 +46,10 @@ source /path/to/conda-auto-activate.sh
 ### Environment Creation
 
 When the script finds an environment.yml file, it will automatically create an environment if it doesn't exist yet. If
-the current directory is in your default conda envs paths (envs directories setting), it will create the environment there. Otherwise, it will create it in the ./envs directory of the current working directory.
+the current directory is in your default conda envs paths, it will create the environment there. Otherwise, it will create it in the ./envs directory of the current working directory.
+
+E.g., if you have an `environment.yml` file in `/path/to/project`, the script will create an environment named `project` in `/path/to/project/envs`.
+E.g., if your default conda envs path is `/path/to/envs`, the script will create an environment named `project` in `/path/to/envs`.
 
 ## Configuration
 
