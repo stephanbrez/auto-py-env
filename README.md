@@ -9,6 +9,7 @@ Inspired by [conda-auto-env](https://github.com/chdoig/conda-auto-env).
 - Automatic terminal setup.
 - Support for both conda and mamba package managers--works if you keep mamba environments separate from conda environments.
 - Runs in specified directories only.
+- Supports self contained projects not located in your conda base environment.
 - Validation of `environment.yml` files to ensure they are safe to use.
 - Direct activation of conda environments from the command line.
 
@@ -35,24 +36,30 @@ Nothing to do, the script will automatically activate the environment when you e
 
 ### Manual Activation
 
-If you want to override the specified directories or not use automatic activation,  you can manually run the script:
+If you want to override the specified directories or not use automatic activation, you can manually run the script:
 
 ```sh
 cd /desired/directory
 source /path/to/conda-auto-activate.sh
 ```
 
+### Environment Creation
+
+When the script finds an environment.yml file, it will automatically create an environment if it doesn't exist yet. If
+the current directory is in your default conda envs paths (envs directories setting), it will create the environment there. Otherwise, it will create it in the ./envs directory of the current working directory.
+
 ## Configuration
 
 The script has two groups of configuration options:
 
 1. **Mandatory**:
-    - `ENV_DIRECTORIES`: Specifies which directories are monitored for conda activation.
+   - `ENV_DIRECTORIES`: Specifies which directories are monitored for conda activation.
 2. **Optional**:
+
 - `PACKAGE_MANAGER`: Specifies the package manager to use. Can be either `conda` or `mamba`. Defaults to `mamba`.
-    - `STRICTNESS_LEVEL`: Controls the validation checks run on `environment.yml`. Defaults to `1`.
-    - `DANGEROUS_PACKAGES`: List of dangerous packages to check for in `environment.yml`.
-    - `TRUSTED_CHANNELS`: List of trusted channels to check for in `environment.yml`. Defaults to `conda-forge` and `defaults`.
+  - `STRICTNESS_LEVEL`: Controls the validation checks run on `environment.yml`. Defaults to `1`.
+  - `DANGEROUS_PACKAGES`: List of dangerous packages to check for in `environment.yml`.
+  - `TRUSTED_CHANNELS`: List of trusted channels to check for in `environment.yml`. Defaults to `conda-forge` and `defaults`.
 
 ### ENV_DIRECTORIES
 
