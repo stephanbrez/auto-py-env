@@ -25,6 +25,11 @@ PROJECT_DIRECTORIES=(
     "/path/to/dir3"
   )
 
+# Default conda enviroment paths.
+# Set this to place all conda environments in a specific directory.
+# If unset, the script will use the conda envs directories from conda info
+# CONDA_ENV_DIRS=()
+
 # Strictness level for validation:
 # 0 = Skip validation
 # 1 = Run basic validation (yamllint, external commands check)
@@ -40,7 +45,6 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 # ********** End user settings ********** #
 
-CONDA_ENV_DIRS=()
 # Function to retrieve all the configured conda envs directories
 function get_conda_envs_dirs() {
     local conda_info
@@ -63,7 +67,10 @@ function get_conda_envs_dirs() {
 }
 # Script is being sourced, set to user defined PROJECT_DIRECTORIES
 if [ -z "$TARGET_DIRECTORIES" ]; then
-  get_conda_envs_dirs
+  if [ -z "$CONDA_ENV_DIRS" ]; then
+    CONDA_ENV_DIRS=()
+    get_conda_envs_dirs
+  fi
   TARGET_DIRECTORIES=("${PROJECT_DIRECTORIES[@]}")
 fi
 
