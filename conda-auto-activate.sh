@@ -27,7 +27,8 @@ PROJECT_DIRECTORIES=(
 
 # Default conda enviroment paths.
 # Set this to place all conda environments in a specific directory.
-# If unset, the script will use the conda envs directories from conda info
+# If unset, the script will use the conda envs directories from conda info.
+# Note: setting this will speed up the script and every new shell you open.
 # CONDA_ENV_DIRS=()
 
 # Strictness level for validation:
