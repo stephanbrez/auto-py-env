@@ -25,9 +25,6 @@ PROJECT_DIRECTORIES=(
     "/path/to/dir3"
   )
 
-# Directory path for the conda environments
-ENV_DIRECTORY="/path/to/envs"
-
 # Strictness level for validation:
 # 0 = Skip validation
 # 1 = Run basic validation (yamllint, external commands check)
@@ -43,8 +40,23 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 # ********** End user settings ********** #
 
+CONDA_ENV_DIRS=()
+# Function to retrieve all the configured conda envs directories
+function get_conda_envs_dirs() {
+    local conda_info
+    if ! conda_info=$(conda info); then
+        echo "Error: Failed to get conda info" >&2
+        return 1
+    fi
+    CONDA_ENV_DIRS=$(echo "$conda_info" | grep "envs directories" | awk -F: '{print $2}' | xargs)
+    for ENV_DIR in $CONDA_ENV_DIRS; do
+        PROJECT_DIRECTORIES+=("$ENV_DIR")
+    done
+}
+
 # Script is being sourced, set to user defined PROJECT_DIRECTORIES
 if [ -z "$TARGET_DIRECTORIES" ]; then
+  get_conda_envs_dirs
   TARGET_DIRECTORIES=("${PROJECT_DIRECTORIES[@]}")
 fi
 
@@ -52,6 +64,13 @@ fi
 function is_target_directory() {
   local current_dir
   current_dir=$(pwd)
+  
+  # Check if TARGET_DIRECTORIES is empty
+  if [ ${#TARGET_DIRECTORIES[@]} -eq 0 ]; then
+    echo "Error: TARGET_DIRECTORIES is empty." >&2
+    return 1
+  fi
+
   for target_dir in "${TARGET_DIRECTORIES[@]}"; do
     if [[ "$current_dir" == *"${target_dir}"* ]]; then
       return 0  # True, the current directory or its parent is one of the target directories
@@ -61,24 +80,16 @@ function is_target_directory() {
   return 1  # False, not in any of the target directories or their subdirectories
 }
 
-# Function to get the primary conda envs directory
-function get_conda_envs_dir() {
-    # Get the first envs directory from conda config
-    local first_envs_dir
-    first_envs_dir=$(conda config --show envs_dirs | grep -m1 -oP '(?<=- ).+')
-    echo "${first_envs_dir}"
-}
-
 # Function to check if current directory is inside conda envs
 function is_conda_envs_dir() {
-    local current_dir conda_envs_dir
+    local current_dir
     current_dir=$(pwd)
-    conda_envs_dir=$(get_conda_envs_dir)
-
-    if [[ "$current_dir" == "${conda_envs_dir}"* ]]; then
-        return 0  # True, we are in conda envs directory
-    fi
-    return 1  # False, we are not in conda envs directory
+    for env_dir in "${CONDA_ENV_DIRS[@]}"; do
+        if [[ "$current_dir" == "$env_dir"* ]]; then
+            return 0  # True, we are in a conda envs directory
+        fi
+    done
+    return 1  # False, we are not in any conda envs directory
 }
 
 # Function to get & set the active package manager
@@ -266,20 +277,20 @@ function setup_auto_activation() {
 
     # Set up auto-activation if --init flag is present
     if [[ $init_flag -eq 1 ]]; then
-        echo "Initializing auto-activation"
-        if [[ -z "$PROMPT_COMMAND" ]]; then
-            echo "Setting PROMPT_COMMAND to auto_env"
-            PROMPT_COMMAND="auto_env"
-        elif [[ "$PROMPT_COMMAND" != *auto_env* ]]; then
-            echo "Adding auto_env to existing PROMPT_COMMAND"
-            PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
-        fi
+      echo "Initializing auto-activation"
+      if [[ -z "$PROMPT_COMMAND" ]]; then
+          echo "Setting PROMPT_COMMAND to auto_env"
+          PROMPT_COMMAND="auto_env"
+      elif [[ "$PROMPT_COMMAND" != *auto_env* ]]; then
+          echo "Adding auto_env to existing PROMPT_COMMAND"
+          PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
+      fi
     fi
 
     # Run auto_env if shell is interactive
     if [[ $- == *i* ]]; then
-        TARGET_DIRECTORIES=("$PWD")
-        activate_conda
+      TARGET_DIRECTORIES=("$PWD")
+      activate_conda
     else
         echo "Error: Shell is not interactive"
     fi
