@@ -13,17 +13,20 @@
 
 # ********** User settings ********** #
 
-# TODO: Set the target directory to current directory if running directly
+# TODO: make sure it checks current directory against the conda base for a path match without basename
 # Package manager to use: "conda" or "mamba"
 PACKAGE_MANAGER="mamba"
 
 # List of directories to check for environment.yml and its children
 # Modify this to the directories you want to trigger the environment activation in
-ENV_DIRECTORIES=(
+PROJECT_DIRECTORIES=(
     "/path/to/dir1"
     "/path/to/dir2"
     "/path/to/dir3"
   )
+
+# Directory path for the conda environments
+ENV_DIRECTORY="/path/to/envs"
 
 # Strictness level for validation:
 # 0 = Skip validation
@@ -40,9 +43,9 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 # ********** End user settings ********** #
 
-# Script is being sourced, set to user defined ENV_DIRECTORIES
+# Script is being sourced, set to user defined PROJECT_DIRECTORIES
 if [ -z "$TARGET_DIRECTORIES" ]; then
-  TARGET_DIRECTORIES=("${ENV_DIRECTORIES[@]}")
+  TARGET_DIRECTORIES=("${PROJECT_DIRECTORIES[@]}")
 fi
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
@@ -161,10 +164,7 @@ function validate_environment_yml() {
 }
 
 # Function to automatically activate the conda environment or create it if necessary
-
-
-# Function to automatically activate the conda environment or create it if necessary
-function auto_env() {
+function activate_conda() {
   local pkg_mgr env_name
   pkg_mgr=$(get_pkg_manager)
 
@@ -228,13 +228,19 @@ function auto_env() {
         fi
       fi
     fi
+  # If environment.yml is not present, check for ./envs, ./venv, or ./.venv directories
   elif [[ -d "./envs" && -x "./envs" ]]; then
-    # If environment.yml is not present, check for an ./envs directory
     echo "Environment.yml not found, attempting to activate ./envs..."
-    if ! $pkg_mgr activate "./envs"; then
-      echo "Error: Failed to activate ./envs directory." >&2
-      return 1
-    fi
+    $pkg_mgr activate "./envs" && return 0
+  elif [[ -d "./venv" && -x "./venv" ]]; then
+    echo "Attempting to activate ./venv..."
+    source "./venv/bin/activate" && return 0
+  elif [[ -d "./.venv" && -x "./.venv" ]]; then
+    echo "Attempting to activate ./.venv..."
+    source "./.venv/bin/activate" && return 0
+  else
+    echo "No valid environment directory found." >&2
+    return 1
   fi
 }
 
@@ -273,7 +279,7 @@ function setup_auto_activation() {
     # Run auto_env if shell is interactive
     if [[ $- == *i* ]]; then
         TARGET_DIRECTORIES=("$PWD")
-        auto_env
+        activate_conda
     else
         echo "Error: Shell is not interactive"
     fi
