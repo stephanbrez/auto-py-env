@@ -63,6 +63,14 @@ debug() {
     fi
 }
 
+# Helper to toggle interactive state
+set_interactive() {
+    function is_interactive() {
+        return "$1"
+    }
+    export -f is_interactive
+}
+
 # Setup function runs before each test
 setup() {
     # Enable debug by default if DEBUG=1
@@ -110,7 +118,13 @@ setup() {
         conda "$@"
     }
 
-    export -f conda mamba debug
+    # Add this mock for is_interactive
+    function is_interactive() {
+        debug "is_interactive called"
+        return 0  # Always return true in tests
+    }
+
+    export -f conda mamba debug is_interactive
 }
 
 # Teardown function runs after each test
@@ -131,9 +145,9 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
-@test "is_target_directory should return false for non-target directory" {
-    TARGET_DIRECTORIES=("/some/other/path")
-    cd "$TEST_DIR"
+@test "is_target_directory should return false for directory not in target list" {
+    TARGET_DIRECTORIES=("$TEST_DIR")
+    cd ..  # Move up one directory from TEST_DIR
     debug "Current directory: $PWD"
     debug "Target directories: ${TARGET_DIRECTORIES[*]}"
     run is_target_directory
@@ -183,8 +197,22 @@ dependencies:
     [ "$status" -eq 1 ]
 }
 
-# Test auto_env function
-@test "auto_env should activate existing environment" {
+# Test activate_conda function
+@test "activate_conda should skip activation in non-interactive shell" {
+    set_interactive 1  # Return 1 means non-interactive
+    cd "$TEST_DIR"
+    run activate_conda
+    [ "$status" -eq 0 ]
+}
+
+@test "activate_conda should attempt activation in interactive shell" {
+    set_interactive 0  # Return 0 means interactive
+    cd "$TEST_DIR"
+    echo "name: test-env" > environment.yml
+    run activate_conda
+    [ "$status" -eq 0 ]
+}
+@test "activate_conda should activate existing environment" {
     cd "$TEST_DIR"
     debug "Creating test environment.yml"
     cat > environment.yml << EOF
@@ -194,16 +222,18 @@ channels:
 dependencies:
   - python=3.8
 EOF
+    # Set interactive mode to true
+    set_interactive 0
     debug "Content of environment.yml:"
     debug "$(cat environment.yml)"
 
-    run auto_env
-    debug "auto_env exit status: $status"
-    debug "auto_env output: $output"
+    run activate_conda
+    debug "activate_conda exit status: $status"
+    debug "activate_conda output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "auto_env should create and activate new environment" {
+@test "activate_conda should create and activate new environment" {
     cd "$TEST_DIR"
     debug "Creating test environment.yml for new environment"
     cat > environment.yml << EOF
@@ -213,38 +243,83 @@ channels:
 dependencies:
   - python=3.8
 EOF
+
     debug "Content of environment.yml:"
     debug "$(cat environment.yml)"
 
-    run auto_env
-    debug "auto_env exit status: $status"
-    debug "auto_env output: $output"
+    run activate_conda
+    debug "activate_conda exit status: $status"
+    debug "activate_conda output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "auto_env should handle missing environment.yml" {
+@test "activate_conda should handle missing environment.yml" {
     cd "$TEST_DIR"
-    debug "Testing auto_env behavior with no environment.yml"
+    debug "Testing activate_conda behavior with no environment.yml"
     debug "Current directory: $PWD"
     debug "Directory contents: $(ls -la)"
 
-    run auto_env
-    debug "auto_env exit status: $status"
-    debug "auto_env output: $output"
+    set_interactive 0
+    run activate_conda
+    debug "activate_conda exit status: $status"
+    debug "activate_conda output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "auto_env should handle envs directory" {
+@test "activate_conda should handle envs directory" {
     cd "$TEST_DIR"
+    set_interactive 0
     debug "Creating envs directory"
     mkdir -p "./envs"
     debug "Current directory: $PWD"
     debug "Directory structure:"
     debug "$(ls -R)"
 
-    run auto_env
-    debug "auto_env exit status: $status"
-    debug "auto_env output: $output"
+    run activate_conda
+    debug "activate_conda exit status: $status"
+    debug "activate_conda output: $output"
+    [ "$status" -eq 0 ]
+}
+
+@test "activate_conda should try to activate ./venv when ./envs activation fails" {
+    cd "$TEST_DIR"
+    set_interactive 0
+    debug "Creating venv directory"
+    mkdir -p "./venv/bin"
+    touch "./venv/bin/activate"
+    chmod +x "./venv/bin/activate"
+
+    # Mock the source command
+    source() {
+        debug "source called with arguments: $*"
+        return 0
+    }
+    export -f source
+
+    run activate_conda
+    debug "activate_conda exit status: $status"
+    debug "activate_conda output: $output"
+    [ "$status" -eq 0 ]
+}
+
+@test "activate_conda should try to activate ./.venv when ./venv doesn't exist" {
+    cd "$TEST_DIR"
+    set_interactive 0
+    debug "Creating .venv directory"
+    mkdir -p "./.venv/bin"
+    touch "./.venv/bin/activate"
+    chmod +x "./.venv/bin/activate"
+
+    # Mock the source command
+    source() {
+        debug "source called with arguments: $*"
+        return 0
+    }
+    export -f source
+
+    run activate_conda
+    debug "activate_conda exit status: $status"
+    debug "activate_conda output: $output"
     [ "$status" -eq 0 ]
 }
 
