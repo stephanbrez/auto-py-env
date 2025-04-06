@@ -15,7 +15,7 @@
 
 # TODO: make sure it checks current directory against the conda base for a path match without basename
 # TODO: add support for uv: https://docs.astral.sh/uv/
-# TODO: add function
+# TODO: update activate_env to skip conda/uv stuff if not installed. Also skip conda if uv is installed and set as PACKAGE_MANAGER.
 
 # Package manager to use: "conda" or "mamba"
 PACKAGE_MANAGER="mamba"
@@ -121,7 +121,7 @@ function is_pkgmgr_installed() {
 }
 
 # Function to get & set the active package manager
-function get_pkg_manager() {
+function get_conda_type() {
     # First ensure conda/mamba is initialized
     if [[ "$PACKAGE_MANAGER" == "mamba" ]]; then
         # Check if mamba exists in path
@@ -207,7 +207,7 @@ function validate_environment_yml() {
 function create_env() {
     local env_type="$1"
     local env_name="$2"
-    local pkg_mgr=$(get_pkg_manager)
+    local pkg_mgr=$(get_conda_type)
 
     case "$env_type" in
         "conda")
@@ -231,7 +231,7 @@ function create_env() {
             ;;
         "uv")
             # Check if uv is installed
-            if ! command -v uv >/dev/null 2>&1; then
+            if ! is_pkgmgr_installed "uv"; then
                 echo "Error: uv is not installed. Please install it first." >&2
                 return 1
             fi
@@ -260,7 +260,7 @@ function create_env() {
 # Function to automatically activate the environment or create it if necessary
 function activate_env() {
     local pkg_mgr env_name
-    pkg_mgr=$(get_pkg_manager)
+    pkg_mgr=$(get_conda_type)
 
     # Check if we're in a target directory before proceeding
     is_target_directory || return 0
