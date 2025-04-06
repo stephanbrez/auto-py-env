@@ -16,6 +16,7 @@
 # TODO: make sure it checks current directory against the conda base for a path match without basename
 # TODO: add support for uv: https://docs.astral.sh/uv/
 # TODO: update activate_env to skip conda/uv stuff if not installed. Also skip conda if uv is installed and set as PACKAGE_MANAGER.
+# inspired by: https://treyhunner.com/2024/10/switching-from-virtualenvwrapper-to-direnv-starship-and-uv/
 
 # Package manager to use: "conda" or "mamba"
 PACKAGE_MANAGER="mamba"
