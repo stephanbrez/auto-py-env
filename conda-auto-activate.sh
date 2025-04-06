@@ -15,6 +15,7 @@
 
 # TODO: make sure it checks current directory against the conda base for a path match without basename
 # TODO: add support for uv: https://docs.astral.sh/uv/
+# TODO: add function
 
 # Package manager to use: "conda" or "mamba"
 PACKAGE_MANAGER="mamba"
@@ -109,12 +110,22 @@ function is_conda_envs_dir() {
     return 1  # False, we are not in any conda envs directory
 }
 
+# Function to check if a package manager is installed
+function is_pkgmgr_installed() {
+    local pkg_mgr="$1"
+    if ! command -v "$pkg_mgr" >/dev/null 2>&1; then
+        echo "Error: '$pkg_mgr' is not installed." >&2
+        return 1
+    fi
+    return 0
+}
+
 # Function to get & set the active package manager
 function get_pkg_manager() {
     # First ensure conda/mamba is initialized
     if [[ "$PACKAGE_MANAGER" == "mamba" ]]; then
         # Check if mamba exists in path
-        if command -v mamba >/dev/null 2>&1; then
+        if is_pkgmgr_installed "mamba"; then
             echo "mamba"
             return
         fi
