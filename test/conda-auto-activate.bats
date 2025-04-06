@@ -197,23 +197,31 @@ dependencies:
     [ "$status" -eq 1 ]
 }
 
-# Test activate_conda function
-@test "activate_conda should skip activation in non-interactive shell" {
-    set_interactive 1  # Return 1 means non-interactive
+# Test activate_env function
+@test "activate_env should skip activation in non-interactive shell" {
     cd "$TEST_DIR"
-    run activate_conda
+    TARGET_DIRECTORIES=("$TEST_DIR")
+    # Setup non-interactive environment
+    export -f setup_auto_activation
+    run setup_auto_activation
+    [[ "$output" == *"Error: Shell is not interactive"* ]]
+}
+
+@test "activate_env should attempt activation in interactive shell" {
+    cd "$TEST_DIR"
+    TARGET_DIRECTORIES=("$TEST_DIR")
+    echo "name: test-env" > environment.yml
+    # Force interactive mode for testing
+    BASH_SOURCE=("something")
+    set -i
+    export -f setup_auto_activation
+    run setup_auto_activation
     [ "$status" -eq 0 ]
 }
 
-@test "activate_conda should attempt activation in interactive shell" {
-    set_interactive 0  # Return 0 means interactive
+@test "activate_env should activate existing environment" {
     cd "$TEST_DIR"
-    echo "name: test-env" > environment.yml
-    run activate_conda
-    [ "$status" -eq 0 ]
-}
-@test "activate_conda should activate existing environment" {
-    cd "$TEST_DIR"
+    TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating test environment.yml"
     cat > environment.yml << EOF
 name: test-env
@@ -222,19 +230,21 @@ channels:
 dependencies:
   - python=3.8
 EOF
-    # Set interactive mode to true
-    set_interactive 0
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
     debug "Content of environment.yml:"
     debug "$(cat environment.yml)"
 
-    run activate_conda
-    debug "activate_conda exit status: $status"
-    debug "activate_conda output: $output"
+    run activate_env
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_conda should create and activate new environment" {
+@test "activate_env should create and activate new environment" {
     cd "$TEST_DIR"
+    TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating test environment.yml for new environment"
     cat > environment.yml << EOF
 name: new-env
@@ -243,52 +253,63 @@ channels:
 dependencies:
   - python=3.8
 EOF
-
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
     debug "Content of environment.yml:"
     debug "$(cat environment.yml)"
 
-    run activate_conda
-    debug "activate_conda exit status: $status"
-    debug "activate_conda output: $output"
+    run activate_env
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_conda should handle missing environment.yml" {
+@test "activate_env should handle missing environment.yml" {
     cd "$TEST_DIR"
-    debug "Testing activate_conda behavior with no environment.yml"
+    TARGET_DIRECTORIES=("$TEST_DIR")
+    debug "Testing activate_env behavior with no environment.yml"
     debug "Current directory: $PWD"
     debug "Directory contents: $(ls -la)"
 
-    set_interactive 0
-    run activate_conda
-    debug "activate_conda exit status: $status"
-    debug "activate_conda output: $output"
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
+    run activate_env
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_conda should handle envs directory" {
+@test "activate_env should handle envs directory" {
     cd "$TEST_DIR"
-    set_interactive 0
+    TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating envs directory"
     mkdir -p "./envs"
     debug "Current directory: $PWD"
     debug "Directory structure:"
     debug "$(ls -R)"
 
-    run activate_conda
-    debug "activate_conda exit status: $status"
-    debug "activate_conda output: $output"
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
+    run activate_env
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_conda should try to activate ./venv when ./envs activation fails" {
+@test "activate_env should try to activate ./venv when ./envs activation fails" {
     cd "$TEST_DIR"
-    set_interactive 0
+    TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating venv directory"
     mkdir -p "./venv/bin"
     touch "./venv/bin/activate"
     chmod +x "./venv/bin/activate"
 
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
     # Mock the source command
     source() {
         debug "source called with arguments: $*"
@@ -296,20 +317,23 @@ EOF
     }
     export -f source
 
-    run activate_conda
-    debug "activate_conda exit status: $status"
-    debug "activate_conda output: $output"
+    run activate_env
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_conda should try to activate ./.venv when ./venv doesn't exist" {
+@test "activate_env should try to activate ./.venv when ./venv doesn't exist" {
     cd "$TEST_DIR"
-    set_interactive 0
+    TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating .venv directory"
     mkdir -p "./.venv/bin"
     touch "./.venv/bin/activate"
     chmod +x "./.venv/bin/activate"
 
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
     # Mock the source command
     source() {
         debug "source called with arguments: $*"
@@ -317,9 +341,9 @@ EOF
     }
     export -f source
 
-    run activate_conda
-    debug "activate_conda exit status: $status"
-    debug "activate_conda output: $output"
+    run activate_env
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
     [ "$status" -eq 0 ]
 }
 
@@ -410,7 +434,7 @@ EOF
     debug "Testing setup_auto_activation"
     debug "Initial PROMPT_COMMAND: $PROMPT_COMMAND"
 
-    run setup_auto_activation
+    run setup_auto_activation --init
 
     debug "Final PROMPT_COMMAND: $PROMPT_COMMAND"
     debug "setup_auto_activation exit status: $status"
