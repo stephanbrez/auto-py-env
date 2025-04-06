@@ -14,6 +14,8 @@
 # ********** User settings ********** #
 
 # TODO: make sure it checks current directory against the conda base for a path match without basename
+# TODO: add support for uv: https://docs.astral.sh/uv/
+
 # Package manager to use: "conda" or "mamba"
 PACKAGE_MANAGER="mamba"
 
@@ -189,85 +191,109 @@ function validate_environment_yml() {
   echo "environment.yml is valid and safe."
 }
 
-# Function to automatically activate the conda environment or create it if necessary
-function activate_conda() {
-  local pkg_mgr env_name
-  pkg_mgr=$(get_pkg_manager)
+# Function to create environment based on specified type
+function create_env() {
+    local env_type="$1"
+    local env_name="$2"
+    local pkg_mgr=$(get_pkg_manager)
 
-  # Check if we're in a target directory before proceeding
-  is_target_directory || return 0
+    case "$env_type" in
+        "conda")
+            if is_conda_envs_dir; then
+                if ! $pkg_mgr env create -f environment.yml -q; then
+                    echo "Error: Failed to create conda environment '$env_name'" >&2
+                    return 1
+                fi
+                if ! $pkg_mgr activate "$env_name"; then
+                    echo "Error: Failed to activate newly created conda environment '$env_name'" >&2
+                    return 1
+                fi
+            else
+                if ! $pkg_mgr env create -f environment.yml -q --prefix "./envs"; then
+                    echo "Error: Failed to create conda environment '$env_name'" >&2
+                    return 1
+                fi
+                if ! $pkg_mgr activate "./envs"; then
+                    echo "Error: Failed to activate newly created conda environment '$env_name'" >&2
+                    return 1
+                fi
+            fi
+            ;;
+        "venv")
+            if ! python -m venv "./venv"; then
+                echo "Error: Failed to create virtual environment" >&2
+                return 1
+            fi
+            if ! source "./venv/bin/activate"; then
+                echo "Error: Failed to activate virtual environment" >&2
+                return 1
+            fi
+            ;;
+        *)
+            echo "Error: Unsupported environment type '$env_type'" >&2
+            return 1
+            ;;
+    esac
+}
 
-  # Check if environment.yml exists and run validation
-  if [[ -f "environment.yml" && -r "environment.yml" ]]; then
-    if ! validate_environment_yml; then
-        echo "Error: Environment validation failed" >&2
+# Function to automatically activate the environment or create it if necessary
+function activate_env() {
+    local pkg_mgr env_name
+    pkg_mgr=$(get_pkg_manager)
+
+    # Check if we're in a target directory before proceeding
+    is_target_directory || return 0
+
+    # Check if environment.yml exists and run validation
+    if [[ -f "environment.yml" && -r "environment.yml" ]]; then
+        if ! validate_environment_yml; then
+            echo "Error: Environment validation failed" >&2
+            return 1
+        fi
+
+        # Extract the environment name
+        env_name=$(grep -m 1 '^[^#]*name:' environment.yml | awk '{print $2}')
+        if [[ -z "$env_name" ]]; then
+            echo "Error: Could not determine environment name from environment.yml" >&2
+            return 1
+        }
+
+        # Check if the environment is not already active
+        if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
+            # Check if the environment exists
+            if env_path=$(conda env list | awk -v env="^$env_name" '$1 ~ env {print $NF; exit}') && [[ -n "$env_path" ]]; then
+                # Determine original package manager
+                if echo "$env_path" | grep -q "mamba"; then
+                    original_pkg_mgr="mamba"
+                else
+                    original_pkg_mgr="conda"
+                fi
+                # Activate existing environment
+                echo "Activating existing $original_pkg_mgr environment '$env_name'..."
+                if ! $original_pkg_mgr activate "$env_name"; then
+                    echo "Error: Failed to activate environment '$env_name'" >&2
+                    return 1
+                fi
+            else
+                # Create new conda environment
+                echo "$pkg_mgr environment '$env_name' doesn't exist. Creating and activating..."
+                create_env "conda" "$env_name"
+            fi
+        fi
+    # If environment.yml is not present, check for other environment directories
+    elif [[ -d "./envs" && -x "./envs" ]]; then
+        echo "Environment.yml not found, attempting to activate ./envs..."
+        $pkg_mgr activate "./envs" && return 0
+    elif [[ -d "./venv" && -x "./venv" ]]; then
+        echo "Attempting to activate ./venv..."
+        source "./venv/bin/activate" && return 0
+    elif [[ -d "./.venv" && -x "./.venv" ]]; then
+        echo "Attempting to activate ./.venv..."
+        source "./.venv/bin/activate" && return 0
+    else
+        echo "No valid environment directory found." >&2
         return 1
     fi
-
-    # Extract the environment name by finding the first non-comment line with 'name:' and taking the value after it
-    env_name=$(grep -m 1 '^[^#]*name:' environment.yml | awk '{print $2}')
-    # Validate environment name
-    if [[ -z "$env_name" ]]; then
-        echo "Error: Could not determine environment name from environment.yml" >&2
-        return 1
-    fi
-
-    # Check if the environment is not already active
-    if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
-      # Check if the environment exists
-      # echo "Checking for existing environment with name '$env_name'..."
-      if env_path=$(conda env list | awk -v env="^$env_name" '$1 ~ env {print $NF; exit}') && [[ -n "$env_path" ]]; then
-
-        # Check if 'mamba' exists in the path to determine package manager
-        if echo "$env_path" | grep -q "mamba"; then
-            original_pkg_mgr="mamba"
-        else
-            original_pkg_mgr="conda"
-        fi
-        # If the environment exists, activate it
-        echo "Activating existing $original_pkg_mgr environment '$env_name'..."
-        if ! $original_pkg_mgr activate "$env_name"; then
-          echo "Error: Failed to activate environment '$env_name'" >&2
-          return 1
-        fi
-      else
-        # If the environment doesn't exist, create it and activate
-        echo "$pkg_mgr environment '$env_name' doesn't exist. Creating and activating..."
-        if is_conda_envs_dir; then
-            if ! $pkg_mgr env create -f environment.yml -q; then
-                echo "Error: Failed to create environment '$env_name'" >&2
-                return 1
-            fi
-            if ! $pkg_mgr activate "$env_name"; then
-                echo "Error: Failed to activate newly created environment '$env_name'" >&2
-                return 1
-            fi
-        else
-            if ! $pkg_mgr env create -f environment.yml -q --prefix "./envs"; then
-                echo "Error: Failed to create environment '$env_name'" >&2
-                return 1
-            fi
-            if ! $pkg_mgr activate "./envs"; then
-                echo "Error: Failed to activate newly created environment '$env_name'" >&2
-                return 1
-            fi
-        fi
-      fi
-    fi
-  # If environment.yml is not present, check for ./envs, ./venv, or ./.venv directories
-  elif [[ -d "./envs" && -x "./envs" ]]; then
-    echo "Environment.yml not found, attempting to activate ./envs..."
-    $pkg_mgr activate "./envs" && return 0
-  elif [[ -d "./venv" && -x "./venv" ]]; then
-    echo "Attempting to activate ./venv..."
-    source "./venv/bin/activate" && return 0
-  elif [[ -d "./.venv" && -x "./.venv" ]]; then
-    echo "Attempting to activate ./.venv..."
-    source "./.venv/bin/activate" && return 0
-  else
-    echo "No valid environment directory found." >&2
-    return 1
-  fi
 }
 
 # Main script logic that combines interactive shell and sourcing check
