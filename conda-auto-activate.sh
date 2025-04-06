@@ -191,6 +191,7 @@ function validate_environment_yml() {
   echo "environment.yml is valid and safe."
 }
 
+
 # Function to create environment based on specified type
 function create_env() {
     local env_type="$1"
@@ -217,6 +218,25 @@ function create_env() {
                 return 1
             fi
             ;;
+        "uv")
+            # Check if uv is installed
+            if ! command -v uv >/dev/null 2>&1; then
+                echo "Error: uv is not installed. Please install it first." >&2
+                return 1
+            fi
+
+            # Create venv using uv
+            if ! uv init; then
+                echo "Error: Failed to create uv environment '$env_name'" >&2
+                return 1
+            fi
+
+            # Initialize the environment
+            if ! uv pip install -r requirements.txt 2>/dev/null; then
+                echo "Warning: No requirements.txt found or failed to install requirements" >&2
+                # Don't return error as this is optional
+            fi
+            ;;
         *)
             echo "Error: Unsupported environment type '$env_type'" >&2
             return 1
@@ -224,6 +244,7 @@ function create_env() {
     esac
     return 0
 }
+
 
 # Function to automatically activate the environment or create it if necessary
 function activate_env() {
