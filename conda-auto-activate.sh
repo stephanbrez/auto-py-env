@@ -204,17 +204,9 @@ function create_env() {
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
-                if ! $pkg_mgr activate "$env_name"; then
-                    echo "Error: Failed to activate newly created conda environment '$env_name'" >&2
-                    return 1
-                fi
             else
                 if ! $pkg_mgr env create -f environment.yml -q --prefix "./envs"; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
-                    return 1
-                fi
-                if ! $pkg_mgr activate "./envs"; then
-                    echo "Error: Failed to activate newly created conda environment '$env_name'" >&2
                     return 1
                 fi
             fi
@@ -224,16 +216,13 @@ function create_env() {
                 echo "Error: Failed to create virtual environment" >&2
                 return 1
             fi
-            if ! source "./venv/bin/activate"; then
-                echo "Error: Failed to activate virtual environment" >&2
-                return 1
-            fi
             ;;
         *)
             echo "Error: Unsupported environment type '$env_type'" >&2
             return 1
             ;;
     esac
+    return 0
 }
 
 # Function to automatically activate the environment or create it if necessary
@@ -256,7 +245,7 @@ function activate_env() {
         if [[ -z "$env_name" ]]; then
             echo "Error: Could not determine environment name from environment.yml" >&2
             return 1
-        }
+        fi
 
         # Check if the environment is not already active
         if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
@@ -276,8 +265,24 @@ function activate_env() {
                 fi
             else
                 # Create new conda environment
-                echo "$pkg_mgr environment '$env_name' doesn't exist. Creating and activating..."
-                create_env "conda" "$env_name"
+                echo "$pkg_mgr environment '$env_name' doesn't exist. Creating..."
+                if create_env "conda" "$env_name"; then
+                    echo "Activating newly created conda environment '$env_name'..."
+                    if is_conda_envs_dir; then
+                        if ! $pkg_mgr activate "$env_name"; then
+                            echo "Error: Failed to activate newly created environment '$env_name'" >&2
+                            return 1
+                        fi
+                    else
+                        if ! $pkg_mgr activate "./envs"; then
+                            echo "Error: Failed to activate newly created environment '$env_name'" >&2
+                            return 1
+                        fi
+                    fi
+                else
+                    echo "Error: Failed to create environment" >&2
+                    return 1
+                fi
             fi
         fi
     # If environment.yml is not present, check for other environment directories
@@ -291,8 +296,18 @@ function activate_env() {
         echo "Attempting to activate ./.venv..."
         source "./.venv/bin/activate" && return 0
     else
-        echo "No valid environment directory found." >&2
-        return 1
+        # Create new venv environment if no environment exists
+        echo "No environment found. Creating new virtual environment..."
+        if create_env "venv" "venv"; then
+            echo "Activating newly created virtual environment..."
+            if ! source "./venv/bin/activate"; then
+                echo "Error: Failed to activate newly created virtual environment" >&2
+                return 1
+            fi
+        else
+            echo "Error: Failed to create virtual environment" >&2
+            return 1
+        fi
     fi
 }
 
@@ -331,7 +346,7 @@ function setup_auto_activation() {
     # Run auto_env if shell is interactive
     if [[ $- == *i* ]]; then
       TARGET_DIRECTORIES=("$PWD")
-      activate_conda
+      activate_env
     else
         echo "Error: Shell is not interactive"
     fi
