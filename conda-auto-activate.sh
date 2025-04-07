@@ -318,9 +318,9 @@ function activate_env() {
                 fi
             fi
         fi
-    # If environment.yml is not present, check for other environment directories
+    # If environment.yml is not present, try activating other environment directories
     elif [[ -d "./envs" && -x "./envs" ]]; then
-        echo "Environment.yml not found, attempting to activate ./envs..."
+        echo "Attempting to activate ./envs..."
         $pkg_mgr activate "./envs" && return 0
     elif [[ -d "./venv" && -x "./venv" ]]; then
         echo "Attempting to activate ./venv..."
@@ -329,18 +329,47 @@ function activate_env() {
         echo "Attempting to activate ./.venv..."
         source "./.venv/bin/activate" && return 0
     else
-        # Create new venv environment if no environment exists
-        echo "No environment found. Creating new virtual environment..."
-        if create_env "venv" "venv"; then
-            echo "Activating newly created virtual environment..."
-            if ! source "./venv/bin/activate"; then
-                echo "Error: Failed to activate newly created virtual environment" >&2
-                return 1
-            fi
-        else
-            echo "Error: Failed to create virtual environment" >&2
-            return 1
-        fi
+    # No environment.yml or directories found, create a new evironment based on PACKAGE_MANAGER
+      echo "No environment.yml found. Creating new $pkg_mgr environment..."
+
+      case "$pkg_mgr" in
+          conda|mamba)
+              if create_env "$pkg_mgr" "env"; then
+                  echo "Activating $pkg_mgr environment..."
+                  if ! $pkg_mgr activate "env"; then
+                      echo "Error: Failed to activate $pkg_mgr environment" >&2
+                      return 1
+                  fi
+              else
+                  return 1
+              fi
+              ;;
+
+          uv)
+              if create_env "uv" "uv"; then
+                  echo "Created uv environment..."
+              else
+                  return 1
+              fi
+              ;;
+
+          venv)
+              if create_env "venv" "venv"; then
+                  echo "Activating virtual environment..."
+                  if ! source "./venv/bin/activate"; then
+                      echo "Error: Failed to activate virtual environment" >&2
+                      return 1
+                  fi
+              else
+                  return 1
+              fi
+              ;;
+
+          *)
+              echo "Error: Unsupported package manager: $pkg_mgr" >&2
+              return 1
+              ;;
+      esac
     fi
 }
 
