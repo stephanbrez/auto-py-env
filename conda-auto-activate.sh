@@ -68,7 +68,7 @@ function get_conda_envs_dirs() {
     for ENV_DIR in "${CONDA_ENV_DIRS[@]}"; do
         PROJECT_DIRECTORIES+=("$ENV_DIR")
     done
-    #echo "CONDA_ENV_DIRS: ${CONDA_ENV_DIRS[@]}"
+    echo "CONDA_ENV_DIRS: ${CONDA_ENV_DIRS[@]}"
 }
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
@@ -202,7 +202,7 @@ function create_env() {
     local env_name="$2"
 
     case "$env_type" in
-        "conda")
+        "conda"|"mamba")
             if is_conda_envs_dir; then
                 if ! $pkg_mgr env create -f environment.yml -q; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
