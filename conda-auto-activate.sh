@@ -204,12 +204,12 @@ function create_env() {
     case "$env_type" in
         "conda"|"mamba")
             if is_conda_envs_dir; then
-                if ! $pkg_mgr env create -f environment.yml -q; then
+                if ! $env_type env create -f environment.yml -q; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
             else
-                if ! $pkg_mgr env create -f environment.yml -q --prefix "./envs"; then
+                if ! $env_type env create -f environment.yml -q --prefix ./envs; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
@@ -414,7 +414,7 @@ function setup_auto_activation() {
       TARGET_DIRECTORIES=("$PWD")
       activate_env
     else
-      if [[ $TEST_MODE -eq 1 ]]; then
+      if [[ $TEST_MODE -ne 1 ]]; then
         echo "Error: Shell is not interactive"
       fi
     fi
