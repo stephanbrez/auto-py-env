@@ -76,15 +76,15 @@ setup() {
     # Enable debug by default if DEBUG=1
     setup_debug
 
-    # Source the script we're testing
-    source "${BATS_TEST_DIRNAME}/../conda-auto-activate.sh"
-
     # Create temporary test directory
     TEST_DIR="$(mktemp -d)"
     debug "Created test directory: $TEST_DIR"
 
     # Save original directory
     ORIGINAL_DIR="$PWD"
+
+    # Set TARGET_DIRECTORIES before sourcing to bypass get_conda_envs_dirs
+    TARGET_DIRECTORIES=("$TEST_DIR")
 
     # Mock conda/mamba commands
     function conda() {
@@ -152,20 +152,22 @@ setup() {
         esac
     }
 
-    # Mock source command
-    function source() {
-        debug "source called with arguments: $*"
-        return 0
-    }
-
     # Mock for is_interactive
     function is_interactive() {
         debug "is_interactive called"
         return 0  # Always return true in tests
     }
 
+    function yamllint() {
+        debug "yamllint called with arguments: $*"
+        return 0
+    }
+
     # Export all mock functions
-    export -f conda mamba python uv source debug is_interactive
+    export -f conda mamba python uv debug is_interactive yamllint
+
+    # Source the script we're testing
+    source "${BATS_TEST_DIRNAME}/../conda-auto-activate.sh"
 }
 
 # Teardown function runs after each test
@@ -242,6 +244,7 @@ dependencies:
 @test "activate_env should skip activation in non-interactive shell" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
+    TEST_MODE=0
     # Setup non-interactive environment
     export -f setup_auto_activation
     run setup_auto_activation
@@ -251,10 +254,9 @@ dependencies:
 @test "activate_env should attempt activation in interactive shell" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
+    TEST_MODE=1
     echo "name: test-env" > environment.yml
     # Force interactive mode for testing
-    BASH_SOURCE=("something")
-    set -i
     export -f setup_auto_activation
     run setup_auto_activation
     [ "$status" -eq 0 ]
@@ -271,9 +273,6 @@ channels:
 dependencies:
   - python=3.8
 EOF
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
     debug "Content of environment.yml:"
     debug "$(cat environment.yml)"
 
@@ -283,7 +282,7 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "activate_env should create and activate new environment" {
+@test "activate_env should create and activate new conda environment when environment.yml is present" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating test environment.yml for new environment"
@@ -294,9 +293,6 @@ channels:
 dependencies:
   - python=3.8
 EOF
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
     debug "Content of environment.yml:"
     debug "$(cat environment.yml)"
 
@@ -313,9 +309,6 @@ EOF
     debug "Current directory: $PWD"
     debug "Directory contents: $(ls -la)"
 
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
     run activate_env
     debug "activate_env exit status: $status"
     debug "activate_env output: $output"
@@ -372,9 +365,6 @@ EOF
     touch "./.venv/bin/activate"
     chmod +x "./.venv/bin/activate"
 
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
     # Mock the source command
     source() {
         debug "source called with arguments: $*"
@@ -507,14 +497,12 @@ EOF
 @test "activate_env should handle new environment creation with conda" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
+    TEST_MODE=1
     PACKAGE_MANAGER="conda"
 
     debug "Testing new conda environment creation"
 
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
-
+    echo "name: test-env" > environment.yml
     run activate_env
 
     debug "activate_env exit status: $status"
@@ -526,14 +514,12 @@ EOF
 @test "activate_env should handle new environment creation with mamba" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
+    TEST_MODE=1
     PACKAGE_MANAGER="mamba"
 
     debug "Testing new mamba environment creation"
 
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
-
+    echo "name: test-env" > environment.yml
     run activate_env
 
     debug "activate_env exit status: $status"
@@ -549,10 +535,6 @@ EOF
 
     debug "Testing new uv environment creation"
 
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
-
     run activate_env
 
     debug "activate_env exit status: $status"
@@ -564,6 +546,7 @@ EOF
 @test "activate_env should handle failed environment creation" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
+    TEST_MODE=1
 
     # Mock create_env to fail
     function create_env() {
@@ -572,10 +555,6 @@ EOF
     export -f create_env
 
     debug "Testing failed environment creation"
-
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
 
     run activate_env
 
@@ -587,19 +566,12 @@ EOF
 @test "activate_env should handle unsupported package manager" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
+    TEST_MODE=1
     PACKAGE_MANAGER="unsupported"
 
     debug "Testing unsupported package manager"
 
-    # Mock interactive shell check
-    function setup_auto_activation() {
-        # Skip the interactive check and directly call activate_env
-        TARGET_DIRECTORIES=("$PWD")
-        activate_env
-    }
-    export -f setup_auto_activation
-
-    run setup_auto_activation
+    run activate_env
 
     debug "activate_env exit status: $status"
     debug "activate_env output: $output"

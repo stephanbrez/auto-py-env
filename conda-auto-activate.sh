@@ -200,7 +200,6 @@ function validate_environment_yml() {
 function create_env() {
     local env_type="$1"
     local env_name="$2"
-    local pkg_mgr=$(get_conda_type)
 
     case "$env_type" in
         "conda")
@@ -265,6 +264,7 @@ function activate_env() {
 
     # Check if environment.yml exists and run validation
     if [[ -f "environment.yml" && -r "environment.yml" ]]; then
+      echo "Found environment.yml..."
         if ! validate_environment_yml; then
             echo "Error: Environment validation failed" >&2
             return 1
@@ -294,7 +294,7 @@ function activate_env() {
                     return 1
                 fi
             else
-                # Create new conda environment
+                # Create new conda environment with environment.yml
                 echo "$pkg_mgr environment '$env_name' doesn't exist. Creating..."
                 if create_env "conda" "$env_name"; then
                     echo "Activating newly created conda environment '$env_name'..."
