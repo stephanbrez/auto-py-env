@@ -86,7 +86,7 @@ setup() {
     # Save original directory
     ORIGINAL_DIR="$PWD"
 
-    # Mock conda/mamba commands with debug output
+    # Mock conda/mamba commands
     function conda() {
         debug "conda called with arguments: $*"
         case "$1" in
@@ -118,13 +118,49 @@ setup() {
         conda "$@"
     }
 
-    # Add this mock for is_interactive
+    # Mock python command
+    function python() {
+        debug "python called with arguments: $*"
+        if [[ "$*" == *"venv"* ]]; then
+            mkdir -p "./venv/bin"
+            touch "./venv/bin/activate"
+            chmod +x "./venv/bin/activate"
+            return 0
+        fi
+        return 1
+    }
+
+    # Mock uv command
+    function uv() {
+        debug "uv called with arguments: $*"
+        case "$1" in
+            "init")
+                mkdir -p "./.venv"
+                return 0
+                ;;
+            "pip")
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    }
+
+    # Mock source command
+    function source() {
+        debug "source called with arguments: $*"
+        return 0
+    }
+
+    # Mock for is_interactive
     function is_interactive() {
         debug "is_interactive called"
         return 0  # Always return true in tests
     }
 
-    export -f conda mamba debug is_interactive
+    # Export all mock functions
+    export -f conda mamba python uv source debug is_interactive
 }
 
 # Teardown function runs after each test
@@ -444,19 +480,6 @@ EOF
     cd "$TEST_DIR"
     debug "Testing venv environment creation"
 
-    # Mock python command
-    function python() {
-        debug "python called with arguments: $*"
-        if [[ "$*" == *"venv"* ]]; then
-            mkdir -p "./venv/bin"
-            touch "./venv/bin/activate"
-            chmod +x "./venv/bin/activate"
-            return 0
-        fi
-        return 1
-    }
-    export -f python
-
     run create_env "venv" "test-venv"
 
     debug "create_env exit status: $status"
@@ -468,24 +491,6 @@ EOF
 @test "create_env should create uv environment correctly" {
     cd "$TEST_DIR"
     debug "Testing uv environment creation"
-
-    # Mock uv command
-    function uv() {
-        debug "uv called with arguments: $*"
-        case "$1" in
-            "init")
-                mkdir -p "./.venv"
-                return 0
-                ;;
-            "pip")
-                return 0
-                ;;
-            *)
-                return 1
-                ;;
-        esac
-    }
-    export -f uv
 
     run create_env "uv" "test-uv"
 
@@ -536,24 +541,6 @@ EOF
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     PACKAGE_MANAGER="uv"
-
-    # Mock uv command
-    function uv() {
-        debug "uv called with arguments: $*"
-        case "$1" in
-            "init")
-                mkdir -p "./.venv"
-                return 0
-                ;;
-            "pip")
-                return 0
-                ;;
-            *)
-                return 1
-                ;;
-        esac
-    }
-    export -f uv
 
     debug "Testing new uv environment creation"
 
