@@ -190,18 +190,18 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-# Test get_pkg_manager function
-@test "get_pkg_manager should return mamba when mamba is available" {
+# Test get_conda_type function
+@test "get_conda_type should return mamba when mamba is available" {
     PACKAGE_MANAGER="mamba"
     debug "Testing package manager selection with PACKAGE_MANAGER=$PACKAGE_MANAGER"
-    result="$(get_pkg_manager)"
+    result="$(get_conda_type)"
     debug "Selected package manager: $result"
     [ "$result" = "mamba" ]
 }
 
-@test "get_pkg_manager should fallback to conda when mamba is not set" {
+@test "get_conda_type should fallback to conda when mamba is not set" {
     PACKAGE_MANAGER="conda"
-    result="$(get_pkg_manager)"
+    result="$(get_conda_type)"
     [ "$result" = "conda" ]
 }
 
