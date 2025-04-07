@@ -253,7 +253,12 @@ function create_env() {
 # Function to automatically activate the environment or create it if necessary
 function activate_env() {
     local pkg_mgr env_name
-    pkg_mgr=$(get_conda_type)
+    if [[ $PACKAGE_MANAGER == "conda" ]] || [[ $PACKAGE_MANAGER == "mamba" ]]; then
+        pkg_mgr=$(get_conda_type)
+    else
+        pkg_mgr=$PACKAGE_MANAGER
+    fi
+    echo "pkg_mgr: $pkg_mgr"
 
     # Check if we're in a target directory before proceeding
     is_target_directory || return 0
