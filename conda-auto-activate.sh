@@ -70,14 +70,6 @@ function get_conda_envs_dirs() {
     done
     echo "CONDA_ENV_DIRS: ${CONDA_ENV_DIRS[@]}"
 }
-# Script is being sourced, set to user defined PROJECT_DIRECTORIES
-if [ -z "$TARGET_DIRECTORIES" ]; then
-  if [ -z "$CONDA_ENV_DIRS" ]; then
-    CONDA_ENV_DIRS=()
-    get_conda_envs_dirs
-  fi
-  TARGET_DIRECTORIES=("${PROJECT_DIRECTORIES[@]}")
-fi
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
 function is_target_directory() {
@@ -382,6 +374,13 @@ function setup_auto_activation() {
         echo "This script is meant to be sourced and not executed directly."
         echo "Run 'source /path/to/conda-auto-activate.sh'."
         return 1
+    else
+        # Script is being sourced, set to user defined PROJECT_DIRECTORIES
+        if [ -z "$CONDA_ENV_DIRS" ]; then
+          CONDA_ENV_DIRS=()
+          get_conda_envs_dirs
+        fi
+        TARGET_DIRECTORIES=("${PROJECT_DIRECTORIES[@]}")
     fi
 
     # Check if --init argument is provided
@@ -410,7 +409,7 @@ function setup_auto_activation() {
       TARGET_DIRECTORIES=("$PWD")
       activate_env
     else
-        echo "Error: Shell is not interactive"
+       echo "Error: Shell is not interactive"
     fi
 }
 # Execute setup with all arguments passed to the script
