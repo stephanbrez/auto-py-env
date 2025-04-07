@@ -405,13 +405,6 @@ function setup_auto_activation() {
       fi
     fi
 
-    # Allow tests to bypass interactive check
-    if [[ -n "$BATS_TEST_FILENAME" ]]; then
-        TARGET_DIRECTORIES=("$PWD")
-        activate_env
-        return
-    fi
-
     # Run auto_env if shell is interactive
     if [[ $- == *i* ]]; then
       TARGET_DIRECTORIES=("$PWD")
