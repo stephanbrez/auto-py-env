@@ -68,7 +68,7 @@ function get_conda_envs_dirs() {
     for ENV_DIR in "${CONDA_ENV_DIRS[@]}"; do
         PROJECT_DIRECTORIES+=("$ENV_DIR")
     done
-    echo "CONDA_ENV_DIRS: ${CONDA_ENV_DIRS[@]}"
+    #echo "CONDA_ENV_DIRS: ${CONDA_ENV_DIRS[@]}"
 }
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
@@ -409,7 +409,9 @@ function setup_auto_activation() {
       TARGET_DIRECTORIES=("$PWD")
       activate_env
     else
-       echo "Error: Shell is not interactive"
+      if [[ $TEST_MODE -eq 1 ]]; then
+        echo "Error: Shell is not interactive"
+      fi
     fi
 }
 # Execute setup with all arguments passed to the script
