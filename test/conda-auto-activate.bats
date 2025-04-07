@@ -429,6 +429,188 @@ EOF
     [ "$status" -eq 0 ]
 }
 
+@test "create_env should create conda environment correctly" {
+    cd "$TEST_DIR"
+    debug "Testing conda environment creation"
+
+    run create_env "conda" "test-env"
+
+    debug "create_env exit status: $status"
+    debug "create_env output: $output"
+    [ "$status" -eq 0 ]
+}
+
+@test "create_env should create venv environment correctly" {
+    cd "$TEST_DIR"
+    debug "Testing venv environment creation"
+
+    # Mock python command
+    function python() {
+        debug "python called with arguments: $*"
+        if [[ "$*" == *"venv"* ]]; then
+            mkdir -p "./venv/bin"
+            touch "./venv/bin/activate"
+            chmod +x "./venv/bin/activate"
+            return 0
+        fi
+        return 1
+    }
+    export -f python
+
+    run create_env "venv" "test-venv"
+
+    debug "create_env exit status: $status"
+    debug "create_env output: $output"
+    [ "$status" -eq 0 ]
+    [ -d "./venv" ]
+}
+
+@test "create_env should create uv environment correctly" {
+    cd "$TEST_DIR"
+    debug "Testing uv environment creation"
+
+    # Mock uv command
+    function uv() {
+        debug "uv called with arguments: $*"
+        case "$1" in
+            "init")
+                mkdir -p "./.venv"
+                return 0
+                ;;
+            "pip")
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    }
+    export -f uv
+
+    run create_env "uv" "test-uv"
+
+    debug "create_env exit status: $status"
+    debug "create_env output: $output"
+    [ "$status" -eq 0 ]
+}
+
+@test "activate_env should handle new environment creation with conda" {
+    cd "$TEST_DIR"
+    TARGET_DIRECTORIES=("$TEST_DIR")
+    PACKAGE_MANAGER="conda"
+
+    debug "Testing new conda environment creation"
+
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
+
+    run activate_env
+
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Creating new conda environment"* ]]
+}
+
+@test "activate_env should handle new environment creation with mamba" {
+    cd "$TEST_DIR"
+    TARGET_DIRECTORIES=("$TEST_DIR")
+    PACKAGE_MANAGER="mamba"
+
+    debug "Testing new mamba environment creation"
+
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
+
+    run activate_env
+
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Creating new mamba environment"* ]]
+}
+
+@test "activate_env should handle new environment creation with uv" {
+    cd "$TEST_DIR"
+    TARGET_DIRECTORIES=("$TEST_DIR")
+    PACKAGE_MANAGER="uv"
+
+    # Mock uv command
+    function uv() {
+        debug "uv called with arguments: $*"
+        case "$1" in
+            "init")
+                mkdir -p "./.venv"
+                return 0
+                ;;
+            "pip")
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    }
+    export -f uv
+
+    debug "Testing new uv environment creation"
+
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
+
+    run activate_env
+
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Created uv environment"* ]]
+}
+
+@test "activate_env should handle failed environment creation" {
+    cd "$TEST_DIR"
+    TARGET_DIRECTORIES=("$TEST_DIR")
+
+    # Mock create_env to fail
+    function create_env() {
+        return 1
+    }
+    export -f create_env
+
+    debug "Testing failed environment creation"
+
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
+
+    run activate_env
+
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
+    [ "$status" -eq 1 ]
+}
+
+@test "activate_env should handle unsupported package manager" {
+    cd "$TEST_DIR"
+    TARGET_DIRECTORIES=("$TEST_DIR")
+    PACKAGE_MANAGER="unsupported"
+
+    debug "Testing unsupported package manager"
+
+    # Force interactive mode
+    BASH_SOURCE=("something")
+    set -i
+
+    run activate_env
+
+    debug "activate_env exit status: $status"
+    debug "activate_env output: $output"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Error: Unsupported package manager"* ]]
+}
+
 # Test setup_auto_activation function
 @test "setup_auto_activation should set PROMPT_COMMAND" {
     debug "Testing setup_auto_activation"
