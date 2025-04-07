@@ -245,8 +245,6 @@ dependencies:
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     TEST_MODE=0
-    # Setup non-interactive environment
-    export -f setup_auto_activation
     run setup_auto_activation
     [[ "$output" == *"Error: Shell is not interactive"* ]]
 }
@@ -255,8 +253,6 @@ dependencies:
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     TEST_MODE=1
-    echo "name: test-env" > environment.yml
-    # Force interactive mode for testing
     export -f setup_auto_activation
     run setup_auto_activation
     [ "$status" -eq 0 ]
@@ -324,9 +320,6 @@ EOF
     debug "Directory structure:"
     debug "$(ls -R)"
 
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
     run activate_env
     debug "activate_env exit status: $status"
     debug "activate_env output: $output"
@@ -341,9 +334,6 @@ EOF
     touch "./venv/bin/activate"
     chmod +x "./venv/bin/activate"
 
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
     # Mock the source command
     source() {
         debug "source called with arguments: $*"
@@ -497,35 +487,33 @@ EOF
 @test "activate_env should handle new environment creation with conda" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
-    TEST_MODE=1
     PACKAGE_MANAGER="conda"
 
     debug "Testing new conda environment creation"
 
-    echo "name: test-env" > environment.yml
+    echo "name: test-new-env" > environment.yml
     run activate_env
 
     debug "activate_env exit status: $status"
     debug "activate_env output: $output"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Creating new conda environment"* ]]
+    [[ "$output" == *"Activating newly created conda environment "* ]]
 }
 
 @test "activate_env should handle new environment creation with mamba" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
-    TEST_MODE=1
     PACKAGE_MANAGER="mamba"
 
     debug "Testing new mamba environment creation"
 
-    echo "name: test-env" > environment.yml
+    echo "name: test-new-env" > environment.yml
     run activate_env
 
     debug "activate_env exit status: $status"
     debug "activate_env output: $output"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Creating new mamba environment"* ]]
+    [[ "$output" == *"Activating newly created conda environment "* ]]
 }
 
 @test "activate_env should handle new environment creation with uv" {
