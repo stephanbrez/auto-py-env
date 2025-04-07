@@ -106,6 +106,11 @@ setup() {
                 debug "Activating conda environment: $2"
                 return 0
                 ;;
+            "info")
+                echo "envs directories : /test/conda/envs
+                  /test/conda/envs2"
+                return 0
+                ;;
             *)
                 debug "Unknown conda command: $1"
                 return 1
@@ -586,11 +591,15 @@ EOF
 
     debug "Testing unsupported package manager"
 
-    # Force interactive mode
-    BASH_SOURCE=("something")
-    set -i
+    # Mock interactive shell check
+    function setup_auto_activation() {
+        # Skip the interactive check and directly call activate_env
+        TARGET_DIRECTORIES=("$PWD")
+        activate_env
+    }
+    export -f setup_auto_activation
 
-    run activate_env
+    run setup_auto_activation
 
     debug "activate_env exit status: $status"
     debug "activate_env output: $output"
