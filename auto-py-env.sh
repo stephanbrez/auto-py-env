@@ -202,12 +202,12 @@ function create_env() {
     case "$env_type" in
         "conda"|"mamba")
             if is_conda_envs_dir; then
-                if ! $env_type env create -f environment.yml -q; then
+                if ! conda env create -f environment.yml -q; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
             else
-                if ! $env_type env create -f environment.yml -q --prefix ./envs; then
+                if ! conda env create -f environment.yml -q --prefix ./envs; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
