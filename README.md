@@ -1,6 +1,6 @@
-# conda-auto-activate
+# auto-py-env
 
-conda-auto-activate is a tool that automatically activates conda environments when navigating to directories containing an `environment.yml` file or an `/envs` directory within a shell. It can also create an environment if it doesn't exist yet.
+auto-py-env is a tool that automatically activates conda environments when navigating to directories containing an `environment.yml` file or an `/envs` directory within a shell. It can also create an environment if it doesn't exist yet.
 
 Inspired by [conda-auto-env](https://github.com/chdoig/conda-auto-env).
 
@@ -18,10 +18,10 @@ Inspired by [conda-auto-env](https://github.com/chdoig/conda-auto-env).
 For automatic operation, integrate the script into your shell configuration by adding the following line to your shell's rc file (e.g., `~/.bashrc`):
 
 ```sh
-source /path/to/conda-auto-activate.sh --init
+source /path/to/auto-py-env.sh --init
 ```
 
-Replace `/path/to/conda-auto-activate.sh` with the actual path to the `conda-auto-activate.sh` script.
+Replace `/path/to/auto-py-env.sh` with the actual path to the `auto-py-env.sh` script.
 
 If using STRICTNESS_LEVEL 1 and above, if you want to use the optional linting feature, you'll need to install yamllint: `sudo
 apt install yamllint` or `sudo pacman install yamllint` or `sudo dnf install yamllint` depending on your distribution.
@@ -40,7 +40,7 @@ If you want to override the specified directories or not use automatic activatio
 
 ```sh
 cd /desired/directory
-source /path/to/conda-auto-activate.sh
+source /path/to/auto-py-env.sh
 ```
 
 ### Environment Creation
@@ -66,9 +66,9 @@ The script has two groups of configuration options:
 
 ### ENV_DIRECTORIES
 
-List the directories where `conda-auto-activate` should look for `environment.yml` files or `/envs` directories. This is useful if you want to restrict automatic activation to certain parts of your file system.
+List the directories where `auto-py-env` should look for `environment.yml` files or `/envs` directories. This is useful if you want to restrict automatic activation to certain parts of your file system.
 
-Modify the list in `conda-auto-activate.sh`:
+Modify the list in `auto-py-env.sh`:
 
 ```bash
 ENV_DIRECTORIES=(
@@ -88,7 +88,7 @@ Defines the level of validation applied to `environment.yml` files:
 - `1`: Basic validation with `yamllint` and external command checks.
 - `2`: Full validation with additional checks for dangerous packages and untrusted channels.
 
-Set the level in `conda-auto-activate.sh`:
+Set the level in `auto-py-env.sh`:
 
 ```bash
 STRICTNESS_LEVEL=1
@@ -119,4 +119,4 @@ TRUSTED_CHANNELS=("conda-forge" "defaults")
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/stephanbrez/conda-auto-activate/issues) to get involved.
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/stephanbrez/auto-py-env/issues) to get involved.
