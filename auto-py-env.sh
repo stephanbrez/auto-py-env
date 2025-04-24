@@ -200,20 +200,22 @@ function create_env() {
     local env_name="$2"
     local env_file="$3"
 
+    echo "Creating new $env_type environment '$env_name'..."
+
     case "$env_type" in
         "conda"|"mamba")
             if [[ -z "${env_file:-}" ]]; then
-              file_string=""
+              params_str="-n $env_name"
             else
-              file_string="-f $env_file"
+              params_str="-f $env_file"
             fi
             if is_conda_envs_dir; then
-                if ! conda env create -q $file_string; then
+                if ! conda env create -q $params_str; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
             else
-                if ! conda env create -q --prefix ./envs $file_string; then
+                if ! conda env create -q --prefix ./envs $params_str; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
@@ -239,6 +241,7 @@ function create_env() {
             fi
 
             # Initialize the environment
+            # TODO: check if requirements.txt exists & use params_str
             if ! uv pip install -r requirements.txt 2>/dev/null; then
                 echo "Warning: No requirements.txt found or failed to install requirements" >&2
                 # Don't return error as this is optional
@@ -342,11 +345,9 @@ function activate_env() {
           return 1
       fi
 
-      echo "Creating new $pkg_mgr environment..."
-
       case "$pkg_mgr" in
           conda|mamba)
-              if create_env "$pkg_mgr" "env"; then
+              if create_env "$pkg_mgr" $(basename "$PWD"); then
                   echo "Activating $pkg_mgr environment..."
                   if ! $pkg_mgr activate "env"; then
                       echo "Error: Failed to activate $pkg_mgr environment" >&2
