@@ -255,6 +255,10 @@ function activate_env() {
     local pkg_mgr env_name
     if [[ $PACKAGE_MANAGER == "conda" ]] || [[ $PACKAGE_MANAGER == "mamba" ]]; then
         pkg_mgr=$(get_conda_type)
+        # Only initialize CONDA_PREFIX if it's not already set
+        if [[ -z "${CONDA_PREFIX+x}" ]]; then
+            CONDA_PREFIX=""
+        fi
     else
         pkg_mgr=$PACKAGE_MANAGER
     fi
@@ -279,7 +283,7 @@ function activate_env() {
         fi
 
         # Check if the environment is not already active
-        if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
+        if [[ -z "$CONDA_PREFIX" ]] || [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
             # Check if the environment exists
             if env_path=$(conda env list | awk -v env="^$env_name" '$1 ~ env {print $NF; exit}') && [[ -n "$env_path" ]]; then
                 # Determine original package manager
