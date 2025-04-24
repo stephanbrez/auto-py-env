@@ -28,13 +28,13 @@
 # - Update tests when modifying existing functionality
 
 # To run the tests, run:
-# bats ./test/conda-auto-activate.bats
+# bats ./test/auto-py-env.bats
 # Enable debug output
 # To run all tests with debug output, run:
-# DEBUG=1 bats ./test/conda-auto-activate.bats
+# DEBUG=1 bats ./test/auto-py-env.bats
 #
 # To run a specific test with debug output, run:
-# bats ./test/conda-auto-activate.bats -f "should activate existing"
+# bats ./test/auto-py-env.bats -f "should activate existing"
 #
 # Global debug flag, can be overridden with DEBUG=1 when running tests
 export DEBUG="${DEBUG:-0}"
@@ -167,7 +167,7 @@ setup() {
     export -f conda mamba python uv debug is_interactive yamllint
 
     # Source the script we're testing
-    source "${BATS_TEST_DIRNAME}/../conda-auto-activate.sh"
+    source "${BATS_TEST_DIRNAME}/../auto-py-env.sh"
 }
 
 # Teardown function runs after each test
