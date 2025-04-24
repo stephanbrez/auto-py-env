@@ -57,10 +57,7 @@ function get_conda_envs_dirs() {
     fi
 
     # Extract both the main line and the continuation line
-    CONDA_ENV_DIRS=()
-    while IFS= read -r line; do
-        CONDA_ENV_DIRS+=("$line")
-    done < <(echo "$conda_info" | \
+    readarray -t CONDA_ENV_DIRS < <(echo "$conda_info" |
         grep -A1 "envs directories" | # Get the line and one after
         sed -n 's/.*envs directories : //p; /^[[:space:]]\+/p' | # Extract paths
         sed 's/^[[:space:]]\+//' | # Remove leading spaces
@@ -255,10 +252,6 @@ function activate_env() {
     local pkg_mgr env_name
     if [[ $PACKAGE_MANAGER == "conda" ]] || [[ $PACKAGE_MANAGER == "mamba" ]]; then
         pkg_mgr=$(get_conda_type)
-        # Only initialize CONDA_PREFIX if it's not already set
-        if [[ -z "${CONDA_PREFIX+x}" ]]; then
-            CONDA_PREFIX=""
-        fi
     else
         pkg_mgr=$PACKAGE_MANAGER
     fi
@@ -283,7 +276,7 @@ function activate_env() {
         fi
 
         # Check if the environment is not already active
-        if [[ -z "$CONDA_PREFIX" ]] || [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
+        if [[ "${CONDA_PREFIX##*/}" != "$env_name" ]]; then
             # Check if the environment exists
             if env_path=$(conda env list | awk -v env="^$env_name" '$1 ~ env {print $NF; exit}') && [[ -n "$env_path" ]]; then
                 # Determine original package manager
@@ -336,7 +329,7 @@ function activate_env() {
       read -r user_response
 
       # Convert response to lowercase
-      user_response=${user_response,,}
+      user_response=$(echo "$user_response" | tr '[:upper:]' '[:lower:]')
 
       if [[ "$user_response" != "y" && "$user_response" != "yes" ]]; then
           echo "Environment creation cancelled by user."
