@@ -14,7 +14,6 @@
 # ********** User settings ********** #
 
 # TODO: add support for uv: https://docs.astral.sh/uv/ - test fully
-# TODO: ask for confirmation before creating env when no enviroment.yml is present
 # inspired by: https://treyhunner.com/2024/10/switching-from-virtualenvwrapper-to-direnv-starship-and-uv/
 
 # Package manager to use: "conda" or "mamba"
@@ -325,8 +324,19 @@ function activate_env() {
         echo "Attempting to activate ./.venv..."
         source "./.venv/bin/activate" && return 0
     else
-    # No environment.yml or directories found, create a new evironment based on PACKAGE_MANAGER
-      echo "No environment.yml found. Creating new $pkg_mgr environment..."
+      # No environment.yml or directories found, ask user before creating a new environment
+      echo "No environment.yml found. Would you like to create a new $pkg_mgr environment? (y/n)"
+      read -r user_response
+
+      # Convert response to lowercase
+      user_response=${user_response,,}
+
+      if [[ "$user_response" != "y" && "$user_response" != "yes" ]]; then
+          echo "Environment creation cancelled by user."
+          return 1
+      fi
+
+      echo "Creating new $pkg_mgr environment..."
 
       case "$pkg_mgr" in
           conda|mamba)
