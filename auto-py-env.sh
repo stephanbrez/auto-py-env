@@ -13,9 +13,8 @@
 
 # ********** User settings ********** #
 
-# TODO: make sure it checks current directory against the conda base for a path match without basename
-# TODO: add support for uv: https://docs.astral.sh/uv/
-# TODO: add support for conda env creation without environment.yml
+# TODO: add support for uv: https://docs.astral.sh/uv/ - test fully
+# TODO: ask for confirmation before creating env when no enviroment.yml is present
 # inspired by: https://treyhunner.com/2024/10/switching-from-virtualenvwrapper-to-direnv-starship-and-uv/
 
 # Package manager to use: "conda" or "mamba"
