@@ -198,16 +198,22 @@ function validate_environment_yml() {
 function create_env() {
     local env_type="$1"
     local env_name="$2"
+    local env_file="$3"
 
     case "$env_type" in
         "conda"|"mamba")
+            if [[ -z "${env_file:-}" ]]; then
+              file_string=""
+            else
+              file_string="-f $env_file"
+            fi
             if is_conda_envs_dir; then
-                if ! conda env create -f environment.yml -q; then
+                if ! conda env create -q $file_string; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
             else
-                if ! conda env create -f environment.yml -q --prefix ./envs; then
+                if ! conda env create -q --prefix ./envs $file_string; then
                     echo "Error: Failed to create conda environment '$env_name'" >&2
                     return 1
                 fi
@@ -294,7 +300,7 @@ function activate_env() {
             else
                 # Create new conda environment with environment.yml
                 echo "$pkg_mgr environment '$env_name' doesn't exist. Creating..."
-                if create_env "conda" "$env_name"; then
+                if create_env "conda" "$env_name" "environment.yml"; then
                     echo "Activating newly created conda environment '$env_name'..."
                     if is_conda_envs_dir; then
                         if ! $pkg_mgr activate "$env_name"; then
