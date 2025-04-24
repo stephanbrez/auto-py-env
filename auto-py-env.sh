@@ -57,7 +57,10 @@ function get_conda_envs_dirs() {
     fi
 
     # Extract both the main line and the continuation line
-    readarray -t CONDA_ENV_DIRS < <(echo "$conda_info" |
+    CONDA_ENV_DIRS=()
+    while IFS= read -r line; do
+        CONDA_ENV_DIRS+=("$line")
+    done < <(echo "$conda_info" | \
         grep -A1 "envs directories" | # Get the line and one after
         sed -n 's/.*envs directories : //p; /^[[:space:]]\+/p' | # Extract paths
         sed 's/^[[:space:]]\+//' | # Remove leading spaces
