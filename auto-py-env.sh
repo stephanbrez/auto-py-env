@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-# conda-auto-activate automatically activates a conda environment when
+# auto-py-env automatically activates a conda environment when
 # entering a folder with an environment.yml file or /envs/ folder
 #
-# If the environment doesn't exist, conda-auto-activate creates and
+# If the environment doesn't exist, auto-py-env creates and
 # activates it for you.
 #
 # To install, add this line to your .bashrc or .bash-profile:
 #
-#       source /path/to/conda-auto-activate.sh
+#       source /path/to/auto-py-env.sh
 #
 
 # ********** User settings ********** #
@@ -377,7 +377,7 @@ function setup_auto_activation() {
     if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
         echo "Script is being executed directly"
         echo "This script is meant to be sourced and not executed directly."
-        echo "Run 'source /path/to/conda-auto-activate.sh'."
+        echo "Run 'source /path/to/auto-py-env.sh'."
         return 1
     else
         # Script is being sourced, set to user defined PROJECT_DIRECTORIES
