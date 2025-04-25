@@ -25,7 +25,7 @@ AUTO_PE_PROJECT_DIRECTORIES=(
     "/path/to/dir1"
     "/path/to/dir2"
     "/path/to/dir3"
-  )
+)
 
 # Default conda enviroment paths.
 # Set this to place all conda environments in a specific directory.
@@ -71,23 +71,23 @@ function get_conda_envs_dirs() {
 
 # Function to check if the current directory is in one of the target directories or its subdirectories
 function is_target_directory() {
-  local current_dir
-  current_dir=$(pwd)
+    local current_dir
+    current_dir=$(pwd)
 
-  # Check if TARGET_DIRECTORIES is empty
-  if [ ${#TARGET_DIRECTORIES[@]} -eq 0 ]; then
-    echo "Error: TARGET_DIRECTORIES is empty." >&2
-    return 1
-  fi
-
-  for target_dir in "${TARGET_DIRECTORIES[@]}"; do
-    if [[ "$current_dir" == *"${target_dir}"* ]]; then
-      return 0  # True, the current directory or its parent is one of the target directories
+    # Check if TARGET_DIRECTORIES is empty
+    if [ ${#TARGET_DIRECTORIES[@]} -eq 0 ]; then
+        echo "Error: TARGET_DIRECTORIES is empty." >&2
+        return 1
     fi
-  done
-  echo "Error: Not in any of the target directories or their subdirectories." >&2
-  return 1  # False, not in any of the target directories or their subdirectories
-}
+
+    for target_dir in "${TARGET_DIRECTORIES[@]}"; do
+        if [[ "$current_dir" == *"${target_dir}"* ]]; then
+        return 0  # True, the current directory or its parent is one of the target directories
+        fi
+    done
+    echo "Error: Not in any of the target directories or their subdirectories." >&2
+    return 1  # False, not in any of the target directories or their subdirectories
+    }
 
 # Function to check if current directory is inside conda envs
 function is_conda_envs_dir() {
@@ -127,19 +127,19 @@ function get_conda_type() {
 }
 
 function check_dangerous_packages() {
-  local line
-  while read -r line; do
-    # Extract the package names if the line starts with a dash (indicating a package entry)
-    if [[ "$line" =~ ^\s*-\s*([a-zA-Z0-9\-]+) ]]; then
-      local pkg="${BASH_REMATCH[1]}"
-      for danger in "${DANGEROUS_PACKAGES[@]}"; do
-        if [[ "$pkg" == "$danger" ]]; then
-          echo "Warning: Dangerous package '$pkg' detected in environment.yml."
-          exit 1
+    local line
+    while read -r line; do
+        # Extract the package names if the line starts with a dash (indicating a package entry)
+        if [[ "$line" =~ ^\s*-\s*([a-zA-Z0-9\-]+) ]]; then
+        local pkg="${BASH_REMATCH[1]}"
+        for danger in "${DANGEROUS_PACKAGES[@]}"; do
+            if [[ "$pkg" == "$danger" ]]; then
+            echo "Warning: Dangerous package '$pkg' detected in environment.yml."
+            exit 1
+            fi
+        done
         fi
-      done
-    fi
-  done < <(grep -E '^\s*- ' environment.yml)
+    done < <(grep -E '^\s*- ' environment.yml)
 }
 
 function check_trusted_channels() {
@@ -156,42 +156,43 @@ function check_trusted_channels() {
 
 # Function to validate the environment.yml file based on the STRICTNESS_LEVEL
 function validate_environment_yml() {
-  # If STRICTNESS_LEVEL is 0, skip all validation
-  if [[ $STRICTNESS_LEVEL -eq 0 ]]; then
-    echo "Validation skipped (STRICTNESS_LEVEL is 0)."
-    return 0
-  fi
+    # If STRICTNESS_LEVEL is 0, skip all validation
+    if [[ $STRICTNESS_LEVEL -eq 0 ]]; then
+        echo "Validation skipped (STRICTNESS_LEVEL is 0)."
+        return 0
+    fi
 
-  # LEVEL 1 and LEVEL 2 validation: Check for yamllint and external commands
-  # Ensures LEVEL 2 includes validations from LEVEL 1
-  if [[ $STRICTNESS_LEVEL -ge 1 ]]; then
-    # Check if yamllint is installed
-    if ! command -v yamllint &> /dev/null; then
-      echo "Warning: 'yamllint' is not installed. YAML syntax validation will be skipped."
-    else
-      # Optionally use yamllint to validate syntax
-      if ! yamllint environment.yml; then
-        echo "Error: Invalid YAML syntax in environment.yml."
-        exit 1
-      fi
+    # LEVEL 1 and LEVEL 2 validation: Check for yamllint and external commands
+    # Ensures LEVEL 2 includes validations from LEVEL 1
+    if [[ $STRICTNESS_LEVEL -ge 1 ]]; then
+        # Check if yamllint is installed
+        if ! command -v yamllint &> /dev/null; then
+            echo "Warning: 'yamllint' is not installed. YAML syntax validation will be skipped."
+        else
+            # Optionally use yamllint to validate syntax
+            if ! yamllint environment.yml; then
+                echo "Error: Invalid YAML syntax in environment.yml."
+                exit 1
+            fi
+        fi
     fi
 
     # Check for external commands like 'curl', 'wget', 'bash', etc.
     if grep -E '(curl|wget|bash|sh|git)' environment.yml; then
-      echo "Warning: External command invocation detected in environment.yml."
-      echo "Potentially unsafe commands like 'curl', 'wget', or 'bash' found."
-      exit 1
+        echo "Warning: External command invocation detected in environment.yml."
+        echo "Potentially unsafe commands like 'curl', 'wget', or 'bash' found."
+        exit 1
     fi
-  fi
+    fi
 
-  # LEVEL 2 validation: Additional checks for dangerous packages and untrusted channels
-  if [[ $STRICTNESS_LEVEL -ge 2 ]]; then
-    # LEVEL 2 already includes LEVEL 1 validation due to structure
-    check_dangerous_packages
-    check_trusted_channels
-  fi
+    # LEVEL 2 validation: Additional checks for dangerous packages and untrusted channels
+    if [[ $STRICTNESS_LEVEL -ge 2 ]]; then
+        # LEVEL 2 already includes LEVEL 1 validation due to structure
+        check_dangerous_packages
+        check_trusted_channels
+    fi
 
-  echo "environment.yml is valid and safe."
+    echo "environment.yml is valid and safe."
 }
 
 
@@ -208,28 +209,28 @@ function create_env() {
         "conda"|"mamba")
             if is_conda_envs_dir; then
                 if [[ -z "${env_file:-}" ]]; then
-                  cmd=("conda" "create" "-q" "-n" "$env_name")
+                    cmd=("conda" "create" "-q" "-n" "$env_name")
                 else
-                  cmd=("conda" "env" "create" "-q" "-f" "$env_file")
+                    cmd=("conda" "env" "create" "-q" "-f" "$env_file")
                 fi
             else
-              if [[ -z "${env_file:-}" ]]; then
-                  cmd=("conda" "create" "-q" "-p" "./envs")
-              else
-                  cmd=("conda" "env" "create" "-q" "-f" "$env_file" "-p" "./envs")
-              fi
+                if [[ -z "${env_file:-}" ]]; then
+                    cmd=("conda" "create" "-q" "-p" "./envs")
+                else
+                    cmd=("conda" "env" "create" "-q" "-f" "$env_file" "-p" "./envs")
+                fi
             fi
             if ! "${cmd[@]}"; then
                 echo "Error: Failed to create conda environment" >&2
                 return 1
             fi
-          ;;
+        ;;
         "venv")
             if ! python -m venv "./venv"; then
                 echo "Error: Failed to create virtual environment" >&2
                 return 1
             fi
-            ;;
+        ;;
         "uv")
             # Check if uv is installed
             if ! is_pkgmgr_installed "uv"; then
@@ -249,11 +250,11 @@ function create_env() {
                 echo "Warning: No requirements.txt found or failed to install requirements" >&2
                 # Don't return error as this is optional
             fi
-            ;;
+        ;;
         *)
             echo "Error: Unsupported environment type '$env_type'" >&2
             return 1
-            ;;
+        ;;
     esac
     return 0
 }
@@ -274,7 +275,7 @@ function process_dir() {
 
     # Check if environment.yml exists and run validation
     if [[ -f "environment.yml" && -r "environment.yml" ]]; then
-      echo "Found environment.yml..."
+        echo "Found environment.yml..."
         if ! validate_environment_yml; then
             echo "Error: Environment validation failed" >&2
             return 1
@@ -336,56 +337,56 @@ function process_dir() {
         echo "Attempting to activate ./.venv..."
         source "./.venv/bin/activate" && return 0
     else
-      # No environment.yml or directories found, ask user before creating a new environment
-      echo "No environment.yml found. Would you like to create a new $pkg_mgr environment? (y/n)"
-      read -r user_response
+        # No environment.yml or directories found, ask user before creating a new environment
+        echo "No environment.yml found. Would you like to create a new $pkg_mgr environment? (y/n)"
+        read -r user_response
 
-      # Convert response to lowercase
-      user_response=$(echo "$user_response" | tr '[:upper:]' '[:lower:]')
+        # Convert response to lowercase
+        user_response=$(echo "$user_response" | tr '[:upper:]' '[:lower:]')
 
-      if [[ "$user_response" != "y" && "$user_response" != "yes" ]]; then
-          echo "Environment creation cancelled by user."
-          return 1
-      fi
+        if [[ "$user_response" != "y" && "$user_response" != "yes" ]]; then
+            echo "Environment creation cancelled by user."
+            return 1
+        fi
 
-      case "$pkg_mgr" in
-          conda|mamba)
-              if create_env "$pkg_mgr" $(basename "$PWD"); then
-                  echo "Activating $pkg_mgr environment..."
-                  if ! $pkg_mgr activate "env"; then
-                      echo "Error: Failed to activate $pkg_mgr environment" >&2
-                      return 1
-                  fi
-              else
-                  return 1
-              fi
-              ;;
+        case "$pkg_mgr" in
+            conda|mamba)
+                if create_env "$pkg_mgr" $(basename "$PWD"); then
+                    echo "Activating $pkg_mgr environment..."
+                    if ! $pkg_mgr activate "env"; then
+                        echo "Error: Failed to activate $pkg_mgr environment" >&2
+                        return 1
+                    fi
+                else
+                    return 1
+                fi
+                ;;
 
-          uv)
-              if create_env "uv" "uv"; then
-                  echo "Created uv environment..."
-              else
-                  return 1
-              fi
-              ;;
+            uv)
+                if create_env "uv" "uv"; then
+                    echo "Created uv environment..."
+                else
+                    return 1
+                fi
+                ;;
 
-          venv)
-              if create_env "venv" "venv"; then
-                  echo "Activating virtual environment..."
-                  if ! source "./venv/bin/activate"; then
-                      echo "Error: Failed to activate virtual environment" >&2
-                      return 1
-                  fi
-              else
-                  return 1
-              fi
-              ;;
+            venv)
+                if create_env "venv" "venv"; then
+                    echo "Activating virtual environment..."
+                    if ! source "./venv/bin/activate"; then
+                        echo "Error: Failed to activate virtual environment" >&2
+                        return 1
+                    fi
+                else
+                    return 1
+                fi
+                ;;
 
-          *)
-              echo "Error: Unsupported package manager: $pkg_mgr" >&2
-              return 1
-              ;;
-      esac
+            *)
+                echo "Error: Unsupported package manager: $pkg_mgr" >&2
+                return 1
+                ;;
+        esac
     fi
 }
 
@@ -401,8 +402,8 @@ function setup_auto_activation() {
     else
         # Script is being sourced, set to user defined AUTO_PE_PROJECT_DIRECTORIES
         if [ -z "$CONDA_ENV_DIRS" ]; then
-          CONDA_ENV_DIRS=()
-          get_conda_envs_dirs
+            CONDA_ENV_DIRS=()
+            get_conda_envs_dirs
         fi
         TARGET_DIRECTORIES=("${AUTO_PE_PROJECT_DIRECTORIES[@]}")
     fi
@@ -418,24 +419,24 @@ function setup_auto_activation() {
 
     # Set up auto-activation if --init flag is present
     if [[ $init_flag -eq 1 ]]; then
-      echo "Initializing auto-activation"
-      if [[ -z "$PROMPT_COMMAND" ]]; then
-          echo "Setting PROMPT_COMMAND to auto_env"
-          PROMPT_COMMAND="auto_env"
-      elif [[ "$PROMPT_COMMAND" != *auto_env* ]]; then
-          echo "Adding auto_env to existing PROMPT_COMMAND"
-          PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
-      fi
+        echo "Initializing auto-activation"
+        if [[ -z "$PROMPT_COMMAND" ]]; then
+            echo "Setting PROMPT_COMMAND to auto_env"
+            PROMPT_COMMAND="auto_env"
+        elif [[ "$PROMPT_COMMAND" != *auto_env* ]]; then
+            echo "Adding auto_env to existing PROMPT_COMMAND"
+            PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
+        fi
     fi
 
     # Run auto_env if shell is interactive
     if [[ $- == *i* ]]; then
-      TARGET_DIRECTORIES=("$PWD")
-      process_dir
+        TARGET_DIRECTORIES=("$PWD")
+        process_dir
     else
-      if [[ $TEST_MODE -ne 1 ]]; then
-        echo "Error: Shell is not interactive"
-      fi
+        if [[ $TEST_MODE -ne 1 ]]; then
+            echo "Error: Shell is not interactive"
+        fi
     fi
 }
 # Execute setup with all arguments passed to the script
