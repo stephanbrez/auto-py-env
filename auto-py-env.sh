@@ -16,12 +16,12 @@
 # TODO: add support for uv: https://docs.astral.sh/uv/ - test fully
 # inspired by: https://treyhunner.com/2024/10/switching-from-virtualenvwrapper-to-direnv-starship-and-uv/
 
-# Package manager to use: "conda" or "mamba"
-PACKAGE_MANAGER="mamba"
+# Environment manager to use: "conda" or "mamba" or "uv" or "venv"
+AUTO_PE_ENV_MANAGER="mamba"
 
 # List of directories to check for environment.yml and its children
 # Modify this to the directories you want to trigger the environment activation in
-PROJECT_DIRECTORIES=(
+AUTO_PE_PROJECT_DIRECTORIES=(
     "/path/to/dir1"
     "/path/to/dir2"
     "/path/to/dir3"
@@ -64,7 +64,7 @@ function get_conda_envs_dirs() {
         grep -v '^$') # Remove empty lines
 
     for ENV_DIR in "${CONDA_ENV_DIRS[@]}"; do
-        PROJECT_DIRECTORIES+=("$ENV_DIR")
+        AUTO_PE_PROJECT_DIRECTORIES+=("$ENV_DIR")
     done
     echo "CONDA_ENV_DIRS: ${CONDA_ENV_DIRS[@]}"
 }
@@ -114,9 +114,10 @@ function is_pkgmgr_installed() {
 # Function to get & set the active package manager
 function get_conda_type() {
     # First ensure conda/mamba is initialized
-    if [[ "$PACKAGE_MANAGER" == "mamba" ]]; then
+    if [[ "$AUTO_PE_ENV_MANAGER" == "mamba" ]]; then
         # Check if mamba exists in path
         if is_pkgmgr_installed "mamba"; then
+            eval "$(mamba shell hook --shell $(basename $(ps -o comm=${0} $PPID)))"
             echo "mamba"
             return
         fi
@@ -261,10 +262,10 @@ function create_env() {
 # Function to automatically activate the environment or create it if necessary
 function process_dir() {
     local pkg_mgr env_name
-    if [[ $PACKAGE_MANAGER == "conda" ]] || [[ $PACKAGE_MANAGER == "mamba" ]]; then
+    if [[ $AUTO_PE_ENV_MANAGER == "conda" ]] || [[ $AUTO_PE_ENV_MANAGER == "mamba" ]]; then
         pkg_mgr=$(get_conda_type)
     else
-        pkg_mgr=$PACKAGE_MANAGER
+        pkg_mgr=$AUTO_PE_ENV_MANAGER
     fi
     echo "pkg_mgr: $pkg_mgr"
 
@@ -398,12 +399,12 @@ function setup_auto_activation() {
         echo "Run 'source /path/to/auto-py-env.sh'."
         return 1
     else
-        # Script is being sourced, set to user defined PROJECT_DIRECTORIES
+        # Script is being sourced, set to user defined AUTO_PE_PROJECT_DIRECTORIES
         if [ -z "$CONDA_ENV_DIRS" ]; then
           CONDA_ENV_DIRS=()
           get_conda_envs_dirs
         fi
-        TARGET_DIRECTORIES=("${PROJECT_DIRECTORIES[@]}")
+        TARGET_DIRECTORIES=("${AUTO_PE_PROJECT_DIRECTORIES[@]}")
     fi
 
     # Check if --init argument is provided
