@@ -214,6 +214,7 @@ function create_env() {
                 fi
             else
               # Make an env directory if not in conda envs dir
+              echo "Creating ./envs directory"
               if ! mkdir ./envs; then
                   echo "Error: Failed to create ./envs directory" >&2
                   return 1
