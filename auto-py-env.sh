@@ -213,12 +213,6 @@ function create_env() {
                   conda env create -q -f $env_file
                 fi
             else
-              # Make an env directory if not in conda envs dir
-              echo "Creating ./envs directory"
-              if ! mkdir ./envs; then
-                  echo "Error: Failed to create ./envs directory" >&2
-                  return 1
-              fi
               # Build command based on whether env file exists
               if [[ -z "${env_file:-}" ]]; then
                   create_cmd="conda create -q -p ./envs"
@@ -228,7 +222,6 @@ function create_env() {
 
               if ! $create_cmd; then
                   echo "Error: Failed to create conda environment" >&2
-                  rm -rf ./envs  # Cleanup on failure
                   return 1
               fi
             fi
