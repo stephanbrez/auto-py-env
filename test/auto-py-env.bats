@@ -240,8 +240,8 @@ dependencies:
     [ "$status" -eq 1 ]
 }
 
-# Test activate_env function
-@test "activate_env should skip activation in non-interactive shell" {
+# Test process_dir function
+@test "process_dir should skip activation in non-interactive shell" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     TEST_MODE=0
@@ -249,7 +249,7 @@ dependencies:
     [[ "$output" == *"Error: Shell is not interactive"* ]]
 }
 
-@test "activate_env should attempt activation in interactive shell" {
+@test "process_dir should attempt activation in interactive shell" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     TEST_MODE=1
@@ -258,7 +258,7 @@ dependencies:
     [ "$status" -eq 0 ]
 }
 
-@test "activate_env should activate existing environment" {
+@test "process_dir should activate existing environment" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating test environment.yml"
@@ -272,13 +272,13 @@ EOF
     debug "Content of environment.yml:"
     debug "$(cat environment.yml)"
 
-    run activate_env
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    run process_dir
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_env should create and activate new conda environment when environment.yml is present" {
+@test "process_dir should create and activate new conda environment when environment.yml is present" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating test environment.yml for new environment"
@@ -292,26 +292,27 @@ EOF
     debug "Content of environment.yml:"
     debug "$(cat environment.yml)"
 
-    run activate_env
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    run process_dir
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_env should handle missing environment.yml" {
+# TODO: Fix this because it's asking for user input
+@test "process_dir should handle missing environment.yml" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
-    debug "Testing activate_env behavior with no environment.yml"
+    debug "Testing process_dir behavior with no environment.yml"
     debug "Current directory: $PWD"
     debug "Directory contents: $(ls -la)"
 
-    run activate_env
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    run process_dir
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_env should handle envs directory" {
+@test "process_dir should handle envs directory" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating envs directory"
@@ -320,13 +321,13 @@ EOF
     debug "Directory structure:"
     debug "$(ls -R)"
 
-    run activate_env
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    run process_dir
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_env should try to activate ./venv when ./envs activation fails" {
+@test "process_dir should try to activate ./venv when ./envs activation fails" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating venv directory"
@@ -341,13 +342,13 @@ EOF
     }
     export -f source
 
-    run activate_env
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    run process_dir
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
 }
 
-@test "activate_env should try to activate ./.venv when ./venv doesn't exist" {
+@test "process_dir should try to activate ./.venv when ./venv doesn't exist" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     debug "Creating .venv directory"
@@ -362,9 +363,9 @@ EOF
     }
     export -f source
 
-    run activate_env
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    run process_dir
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
 }
 
@@ -484,7 +485,7 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "activate_env should handle new environment creation with conda" {
+@test "process_dir should handle new environment creation with conda" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     PACKAGE_MANAGER="conda"
@@ -492,15 +493,15 @@ EOF
     debug "Testing new conda environment creation"
 
     echo "name: test-new-env" > environment.yml
-    run activate_env
+    run process_dir
 
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Activating newly created conda environment "* ]]
 }
 
-@test "activate_env should handle new environment creation with mamba" {
+@test "process_dir should handle new environment creation with mamba" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     PACKAGE_MANAGER="mamba"
@@ -508,30 +509,30 @@ EOF
     debug "Testing new mamba environment creation"
 
     echo "name: test-new-env" > environment.yml
-    run activate_env
+    run process_dir
 
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Activating newly created conda environment "* ]]
 }
 
-@test "activate_env should handle new environment creation with uv" {
+@test "process_dir should handle new environment creation with uv" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     PACKAGE_MANAGER="uv"
 
     debug "Testing new uv environment creation"
 
-    run activate_env
+    run process_dir
 
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Created uv environment"* ]]
 }
 
-@test "activate_env should handle failed environment creation" {
+@test "process_dir should handle failed environment creation" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     TEST_MODE=1
@@ -544,14 +545,14 @@ EOF
 
     debug "Testing failed environment creation"
 
-    run activate_env
+    run process_dir
 
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 1 ]
 }
 
-@test "activate_env should handle unsupported package manager" {
+@test "process_dir should handle unsupported package manager" {
     cd "$TEST_DIR"
     TARGET_DIRECTORIES=("$TEST_DIR")
     TEST_MODE=1
@@ -559,10 +560,10 @@ EOF
 
     debug "Testing unsupported package manager"
 
-    run activate_env
+    run process_dir
 
-    debug "activate_env exit status: $status"
-    debug "activate_env output: $output"
+    debug "process_dir exit status: $status"
+    debug "process_dir output: $output"
     [ "$status" -eq 1 ]
     [[ "$output" == *"Error: Unsupported package manager"* ]]
 }

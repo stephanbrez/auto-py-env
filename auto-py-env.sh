@@ -257,7 +257,7 @@ function create_env() {
 
 
 # Function to automatically activate the environment or create it if necessary
-function activate_env() {
+function process_dir() {
     local pkg_mgr env_name
     if [[ $PACKAGE_MANAGER == "conda" ]] || [[ $PACKAGE_MANAGER == "mamba" ]]; then
         pkg_mgr=$(get_conda_type)
@@ -428,7 +428,7 @@ function setup_auto_activation() {
     # Run auto_env if shell is interactive
     if [[ $- == *i* ]]; then
       TARGET_DIRECTORIES=("$PWD")
-      activate_env
+      process_dir
     else
       if [[ $TEST_MODE -ne 1 ]]; then
         echo "Error: Shell is not interactive"
