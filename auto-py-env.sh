@@ -199,33 +199,39 @@ function create_env() {
     local env_type="$1"
     local env_name="$2"
     local env_file="$3"
-    local base_cmd=""
+    local create_cmd=""
 
     echo "Creating new $env_type environment '$env_name'..."
 
     case "$env_type" in
         "conda"|"mamba")
-            base_cmd="conda env create -q"
             if is_conda_envs_dir; then
-                [[ -z "${env_file:-}" ]] && base_cmd+=" -n $env_name"
-            else
-                base_cmd+=" -p ./envs"
-                # Try to make directory if no env file and not in conda envs dir
-                if [[ -z "${env_file:-}" ]] && ! mkdir ./envs; then
-                    echo "Error: Failed to create directory" >&2
-                    return 1
+              # No env file specified, create named environment
+                if [[ -z "${env_file:-}" ]]; then
+                  conda create -q -n $env_name
+                else
+                  conda env create -q -f $env_file
                 fi
-            fi
+            else
+              # Make an env directory if not in conda envs dir
+              if ! makedir ./envs; then
+                  echo "Error: Failed to create ./envs directory" >&2
+                  return 1
+              fi
+              # Build command based on whether env file exists
+              if [[ -z "${env_file:-}" ]]; then
+                  create_cmd="conda create -q -p ./envs"
+              else
+                  create_cmd="conda env create -q -f $env_file -p ./envs"
+              fi
 
-            # Add env file flag if specified
-            [[ -n "${env_file:-}" ]] && base_cmd+=" -f $env_file"
-
-            echo "Creating conda environment: $base_cmd"
-            if ! $base_cmd; then
-                echo "Error: Failed to create conda environment" >&2
-                return 1
+              if ! $create_cmd; then
+                  echo "Error: Failed to create conda environment" >&2
+                  rm -rf ./envs  # Cleanup on failure
+                  return 1
+              fi
             fi
-            ;;
+          ;;
         "venv")
             if ! python -m venv "./venv"; then
                 echo "Error: Failed to create virtual environment" >&2
