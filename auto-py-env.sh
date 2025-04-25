@@ -199,26 +199,26 @@ function create_env() {
     local env_type="$1"
     local env_name="$2"
     local env_file="$3"
+    local base_cmd=""
 
     echo "Creating new $env_type environment '$env_name'..."
 
     case "$env_type" in
         "conda"|"mamba")
-            if [[ -z "${env_file:-}" ]]; then
-              params_str="-n $env_name"
-            else
-              params_str="-f $env_file"
-            fi
+            base_cmd="conda env create -q"
             if is_conda_envs_dir; then
-                if ! conda env create -q $params_str; then
-                    echo "Error: Failed to create conda environment '$env_name'" >&2
-                    return 1
-                fi
+                [[ -z "${env_file:-}" ]] && base_cmd+=" -n $env_name"
             else
-                if ! conda env create -q --prefix ./envs $params_str; then
-                    echo "Error: Failed to create conda environment '$env_name'" >&2
-                    return 1
-                fi
+                base_cmd+=" --prefix ./envs"
+            fi
+
+            # Add env file flag if specified
+            [[ -n "${env_file:-}" ]] && base_cmd+=" -f $env_file"
+
+            echo "Creating conda environment: $base_cmd"
+            if ! $base_cmd; then
+                echo "Error: Failed to create conda environment" >&2
+                return 1
             fi
             ;;
         "venv")
