@@ -209,7 +209,7 @@ function create_env() {
             if is_conda_envs_dir; then
                 [[ -z "${env_file:-}" ]] && base_cmd+=" -n $env_name"
             else
-                base_cmd+=" --prefix ./envs"
+                base_cmd+=" -p ./envs"
                 # Try to make directory if no env file and not in conda envs dir
                 if [[ -z "${env_file:-}" ]] && ! mkdir ./envs; then
                     echo "Error: Failed to create directory" >&2
