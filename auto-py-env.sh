@@ -57,17 +57,17 @@ function get_conda_envs_dirs() {
     fi
 
     # Extract both the main line and the continuation line
-      CONDA_ENV_DIRS=()
-      while IFS= read -r line; do
-          line=$(echo "$line" | sed 's/^[[:space:]]\+//')
-          if [[ -n "$line" ]]; then
-              if [[ "$line" =~ "envs directories : " ]]; then
-                  CONDA_ENV_DIRS+=("${line#*: }")
-              elif [[ "$line" =~ ^[[:space:]] ]]; then
-                  CONDA_ENV_DIRS+=("$line")
-              fi
-          fi
-      done < <(echo "$conda_info" | grep -A1 "envs directories")
+    CONDA_ENV_DIRS=()
+    while IFS= read -r line; do
+        line=$(echo "$line" | sed 's/^[[:space:]]\+//')
+        if [[ -n "$line" ]]; then
+            if [[ "$line" =~ "envs directories : " ]]; then
+                CONDA_ENV_DIRS+=("${line#*: }")
+            elif [[ "$line" =~ ^[[:space:]] ]]; then
+                CONDA_ENV_DIRS+=("$line")
+            fi
+        fi
+    done < <(echo "$conda_info" | grep -A1 "envs directories")
 
     for ENV_DIR in "${CONDA_ENV_DIRS[@]}"; do
         AUTO_PE_PROJECT_DIRECTORIES+=("$ENV_DIR")
@@ -188,7 +188,6 @@ function validate_environment_yml() {
         echo "Warning: External command invocation detected in environment.yml."
         echo "Potentially unsafe commands like 'curl', 'wget', or 'bash' found."
         exit 1
-    fi
     fi
 
     # LEVEL 2 validation: Additional checks for dangerous packages and untrusted channels
