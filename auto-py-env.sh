@@ -57,11 +57,17 @@ function get_conda_envs_dirs() {
     fi
 
     # Extract both the main line and the continuation line
-    readarray -t CONDA_ENV_DIRS < <(echo "$conda_info" |
-        grep -A1 "envs directories" | # Get the line and one after
-        sed -n 's/.*envs directories : //p; /^[[:space:]]\+/p' | # Extract paths
-        sed 's/^[[:space:]]\+//' | # Remove leading spaces
-        grep -v '^$') # Remove empty lines
+      CONDA_ENV_DIRS=()
+      while IFS= read -r line; do
+          line=$(echo "$line" | sed 's/^[[:space:]]\+//')
+          if [[ -n "$line" ]]; then
+              if [[ "$line" =~ "envs directories : " ]]; then
+                  CONDA_ENV_DIRS+=("${line#*: }")
+              elif [[ "$line" =~ ^[[:space:]] ]]; then
+                  CONDA_ENV_DIRS+=("$line")
+              fi
+          fi
+      done < <(echo "$conda_info" | grep -A1 "envs directories")
 
     for ENV_DIR in "${CONDA_ENV_DIRS[@]}"; do
         AUTO_PE_PROJECT_DIRECTORIES+=("$ENV_DIR")
