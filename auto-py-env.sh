@@ -266,7 +266,7 @@ function create_env() {
 
 
 # Function to automatically activate the environment or create it if necessary
-function process_dir() {
+function auto_py_env() {
     local pkg_mgr env_name
     if [[ $AUTO_PE_ENV_MANAGER == "conda" ]] || [[ $AUTO_PE_ENV_MANAGER == "mamba" ]]; then
         pkg_mgr=$(get_conda_type)
@@ -426,16 +426,16 @@ function setup_auto_activation() {
     if [[ $init_flag -eq 1 ]]; then
         echo "Initializing auto-activation"
         if [[ -z "$PROMPT_COMMAND" ]]; then
-            echo "Setting PROMPT_COMMAND to auto_env"
-            PROMPT_COMMAND="auto_env"
-        elif [[ "$PROMPT_COMMAND" != *auto_env* ]]; then
-            echo "Adding auto_env to existing PROMPT_COMMAND"
-            PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
+            echo "Setting PROMPT_COMMAND to auto_py_env"
+            PROMPT_COMMAND="auto_py_env"
+        elif [[ "$PROMPT_COMMAND" != *auto_py_env* ]]; then
+            echo "Adding auto_py_env to existing PROMPT_COMMAND"
+            PROMPT_COMMAND="auto_py_env; $PROMPT_COMMAND"
         fi
     # script is being sourced directly, activate envs only if shell is interactive
     elif [[ $- == *i* ]]; then
         TARGET_DIRECTORIES=("$PWD")
-        process_dir
+        auto_py_env
     else
         if [[ $TEST_MODE -ne 1 ]]; then
             echo "Error: Shell is not interactive"
