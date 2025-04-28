@@ -432,11 +432,8 @@ function setup_auto_activation() {
             echo "Adding auto_env to existing PROMPT_COMMAND"
             PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
         fi
-      exit 0
-    fi
-
-    # Run auto_env if shell is interactive
-    if [[ $- == *i* ]]; then
+    # script is being sourced directly, activate envs only if shell is interactive
+    elif [[ $- == *i* ]]; then
         TARGET_DIRECTORIES=("$PWD")
         process_dir
     else
@@ -444,6 +441,7 @@ function setup_auto_activation() {
             echo "Error: Shell is not interactive"
         fi
     fi
+
 }
 # Execute setup with all arguments passed to the script
 setup_auto_activation "$@"
