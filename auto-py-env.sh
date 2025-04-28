@@ -432,6 +432,7 @@ function setup_auto_activation() {
             echo "Adding auto_env to existing PROMPT_COMMAND"
             PROMPT_COMMAND="auto_env; $PROMPT_COMMAND"
         fi
+      exit 0
     fi
 
     # Run auto_env if shell is interactive
